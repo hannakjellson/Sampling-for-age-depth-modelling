@@ -1,0 +1,12 @@
+{
+  "python.pythonPath": "./bacon_venv/Scripts/python.exe",
+  "files.associations": {
+    "gsl_matrix.h": "c",
+    "cmath": "c",
+    "complex": "c",
+    "numbers": "c",
+    "gsl_permutation.h": "c",
+    "chrono": "c",
+    "gsl_randist.h": "c"
+  }
+}
