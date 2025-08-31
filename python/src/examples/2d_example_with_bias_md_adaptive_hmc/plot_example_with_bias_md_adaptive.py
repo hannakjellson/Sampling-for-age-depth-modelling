@@ -18,10 +18,10 @@ def energy_function(variables):
 
 
 def main(): # Next step is to send through the biases (height, width etc) here, and plot what i get out of that and to then try longer steps if it looks weird.
-    valid_samples = np.load("../../../../output/example_with_bias_samples_md_adaptive_2d_new_kernel.npy")
-    energy_values = np.load("../../../../output/example_with_bias_energy_values_md_adaptive_2d_new_kernel.npy")
-    bias_values = np.load("../../../../output/example_with_bias_weights_md_adaptive_2d_new_kernel.npy")
-    bias_std = np.load("../../../../output/example_with_bias_std_out_md_adaptive_2d_new_kernel.npy")
+    valid_samples = np.load("../../../../output/example_with_bias_samples_md_adaptive_2d.npy")
+    energy_values = np.load("../../../../output/example_with_bias_energy_values_md_adaptive_2d.npy")
+    bias_values = np.load("../../../../output/example_with_bias_weights_md_adaptive_2d.npy")
+    bias_std = np.load("../../../../output/example_with_bias_std_out_md_adaptive_2d.npy")
 
     config = get_hmc_config()
     x = np.linspace(-3, 3, 1000)

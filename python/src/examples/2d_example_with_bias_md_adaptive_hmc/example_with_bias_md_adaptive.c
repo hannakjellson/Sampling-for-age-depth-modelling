@@ -12,7 +12,7 @@
 #include <omp.h>
 
 #define MAX_BIAS 10000
-#define distance_threshold 1
+#define distance_threshold 0.1
 #define THETA (-0.6 * M_PI / 4.0)
 #define COS_THETA 0.8910065241883679
 #define SIN_THETA -0.45399049973954675
@@ -104,41 +104,49 @@ void grad_bias(double x, double *bias_centers, double *bias_heights, double *bia
     gradient[1] = 0;
 }
 
-void new_kernel(double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count, int i)
+void new_kernel(double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count, int index, bool right)
 {
-    double new_bias_height = bias_heights[i + 1] + bias_heights[i];
-    double new_bias_center = (1.0 / new_bias_height) * (bias_heights[i] * bias_centers[i] + bias_heights[i + 1] * bias_centers[i + 1]);
-    double new_bias_width = sqrt((1.0 / new_bias_height) * (bias_heights[i] * (pow(bias_widths[i], 2) + pow(bias_centers[i], 2)) + bias_heights[i + 1] * (pow(bias_widths[i + 1], 2) + pow(bias_centers[i + 1], 2))) - (new_bias_center * new_bias_center));
+    double new_bias_height = right ? bias_heights[index + 1] + bias_heights[index] : bias_heights[index - 1] + bias_heights[index];
+    double new_bias_center = right ? (1.0 / new_bias_height) * (bias_heights[index] * bias_centers[index] + bias_heights[index + 1] * bias_centers[index + 1]) : (1.0 / new_bias_height) * (bias_heights[index] * bias_centers[index] + bias_heights[index - 1] * bias_centers[index - 1]);
+    double new_bias_width = right ? sqrt((1.0 / new_bias_height) * (bias_heights[index] * (pow(bias_widths[index], 2) + pow(bias_centers[index], 2)) + bias_heights[index + 1] * (pow(bias_widths[index + 1], 2) + pow(bias_centers[index + 1], 2))) - (new_bias_center * new_bias_center)) : sqrt((1.0 / new_bias_height) * (bias_heights[index] * (pow(bias_widths[index], 2) + pow(bias_centers[index], 2)) + bias_heights[index - 1] * (pow(bias_widths[index - 1], 2) + pow(bias_centers[index - 1], 2))) - (new_bias_center * new_bias_center));
 
-    bias_heights[i] = new_bias_height;
-    bias_centers[i] = new_bias_center;
-    bias_widths[i] = new_bias_width;
-    kernel_weights[i] = kernel_weights[i] + kernel_weights[i + 1];
-    (*sum_squared_weights) -= kernel_weights[i] * kernel_weights[i];
-    (*sum_squared_weights) -= kernel_weights[i + 1] * kernel_weights[i + 1];
-    (*sum_squared_weights) += (kernel_weights[i] + kernel_weights[i + 1]) * (kernel_weights[i] + kernel_weights[i + 1]);
-    memmove(&bias_heights[i + 1], &bias_heights[i + 2], (*bias_count - i - 2) * sizeof(double));
-    memmove(&bias_centers[i + 1], &bias_centers[i + 2], (*bias_count - i - 2) * sizeof(double));
-    memmove(&bias_widths[i + 1], &bias_widths[i + 2], (*bias_count - i - 2) * sizeof(double));
-    memmove(&kernel_weights[i + 1], &kernel_weights[i + 2], (*bias_count - i - 2) * sizeof(double));
+    int new_index = right ? index : index - 1;
+    bias_heights[new_index] = new_bias_height;
+    bias_centers[new_index] = new_bias_center;
+    bias_widths[new_index] = new_bias_width;
+
+    (*sum_squared_weights) -= kernel_weights[new_index] * kernel_weights[new_index];
+    (*sum_squared_weights) -= kernel_weights[new_index + 1] * kernel_weights[new_index + 1];
+    (*sum_squared_weights) += (kernel_weights[new_index] + kernel_weights[new_index + 1]) * (kernel_weights[new_index] + kernel_weights[new_index + 1]);
+    kernel_weights[new_index] = kernel_weights[new_index] + kernel_weights[new_index + 1];
+
+    memmove(&bias_heights[new_index + 1], &bias_heights[new_index + 2], (*bias_count - new_index - 2) * sizeof(double));
+    memmove(&bias_centers[new_index + 1], &bias_centers[new_index + 2], (*bias_count - new_index - 2) * sizeof(double));
+    memmove(&bias_widths[new_index + 1], &bias_widths[new_index + 2], (*bias_count - new_index - 2) * sizeof(double));
+    memmove(&kernel_weights[new_index + 1], &kernel_weights[new_index + 2], (*bias_count - new_index - 2) * sizeof(double));
 
     (*bias_count)--;
 }
 
-void merge_kernels(double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count)
+void merge_kernels(int index, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count)
 {
-    double distance;
-
-    for (int i = 0; i < *bias_count - 1; i++)
+    double distance = 0;
+    while (*bias_count > 1)
     {
-        distance = bias_centers[i + 1] - bias_centers[i];
-
-        while (distance < distance_threshold && i + 1 < *bias_count)
+        // printf("bias count %d\n", *bias_count);
+        // printf("index %d\n", index);
+        double distance_right = index + 1 < *bias_count ? bias_centers[index + 1] - bias_centers[index] : DBL_MAX;
+        double distance_left = index - 1 >= 0 ? bias_centers[index] - bias_centers[index - 1] : DBL_MAX; // Both of them wont be DBL_MAX as bias_count > 2
+        bool right = distance_right < distance_left ? true : false;
+        distance = right ? distance_right : distance_left;
+        if (distance < distance_threshold)
         {
-            // printf("merge %d\n", i);
-            new_kernel(bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count, i);
-            distance = bias_centers[i + 1] - bias_centers[i];
+            // printf("merging\n");
+            new_kernel(bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count, index, right);
+            index = right ? index : index - 1;
         }
+        else
+            break;
     }
 }
 
@@ -173,18 +181,8 @@ void deposit_gaussian(double x, double width, double *bias_centers, double *bias
         bias_widths[index] = width;
         kernel_weights[index] = current_weight;
         (*bias_count)++;
-        if ((iterations + 1) % 100 == 0)
-        {
-            merge_kernels(bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count);
-        }
+        merge_kernels(index, bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count);
     }
-}
-
-double rand_normal()
-{
-    double u1 = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
-    double u2 = ((double)rand() + 1.0) / ((double)RAND_MAX + 2.0);
-    return sqrt(-2.0 * log(u1)) * cos(2 * M_PI * u2);
 }
 
 void md(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double bias_std,
@@ -192,11 +190,10 @@ void md(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double 
         double gamma, double beta, double d, double DeltaE)
 {
 
-    double Z = 1.0;
-
 #pragma omp parallel for
     for (int k = 0; k < num_SP; k++)
     {
+        double Z = 1.0;
         const gsl_rng_type *T;
         gsl_rng *r;
 

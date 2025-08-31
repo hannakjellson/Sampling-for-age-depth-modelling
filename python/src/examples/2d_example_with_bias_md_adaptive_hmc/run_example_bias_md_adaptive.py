@@ -61,20 +61,20 @@ def main():
     samples = np.ctypeslib.as_array(samples_out)
     print(len(samples))
     samples = np.reshape(samples, (config["num_chains"], config["num_samples"], 2))
-    np.save("../../../output/example_with_bias_samples_md_adaptive_2d_new_kernel.npy", samples)
+    np.save("../../../../output/example_with_bias_samples_md_adaptive_2d.npy", samples)
     print(samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (config["num_chains"], config["num_samples"]))
-    np.save("../../../output/example_with_bias_energy_values_md_adaptive_2d_new_kernel.npy", energy_values)
+    np.save("../../../../output/example_with_bias_energy_values_md_adaptive_2d.npy", energy_values)
 
     bias_weights = np.ctypeslib.as_array(bias_out)
     bias_weights = np.reshape(bias_weights, (config["num_chains"], config["num_samples"]))
-    np.save("../../../output/example_with_bias_weights_md_adaptive_2d_new_kernel.npy", bias_weights)
+    np.save("../../../../output/example_with_bias_weights_md_adaptive_2d.npy", bias_weights)
 
     bias_std_out = np.ctypeslib.as_array(bias_std_out)
     bias_std_out = np.reshape(bias_std_out, (config["num_chains"], config["num_samples"]))
-    np.save("../../../output/example_with_bias_std_out_md_adaptive_2d_new_kernel.npy", bias_std_out)
+    np.save("../../../../output/example_with_bias_std_out_md_adaptive_2d.npy", bias_std_out)
 
 if __name__ == "__main__":
     main()
