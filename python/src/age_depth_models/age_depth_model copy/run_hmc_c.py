@@ -34,9 +34,9 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # D18O_sigma
         ctypes.POINTER(ctypes.c_double),  # D18O_reference
         ctypes.POINTER(ctypes.c_double),  # D18O_reference_times
-        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),  # samples_out
-        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),  # energy_out
-        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),  # bias_out
+        ctypes.POINTER(ctypes.c_double),  # samples_out
+        ctypes.POINTER(ctypes.c_double),  # energy_out
+        ctypes.POINTER(ctypes.c_double),  # bias_out
     ]
 
     lib.hmc.restype = None
@@ -67,9 +67,11 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    samples_out = ctypes.POINTER(ctypes.c_double)()
-    energy_out = ctypes.POINTER(ctypes.c_double)()
-    bias_out = ctypes.POINTER(ctypes.c_double)()
+    total = config["num_chains"] * config["num_samples"]
+    total_times_N = total * config["N"]
+    samples_out = (ctypes.c_double * total_times_N)()
+    energy_out = (ctypes.c_double * total)()
+    bias_out = (ctypes.c_double * total)()
 
     lib.hmc(
         ctypes.c_int(config["N"]),
@@ -98,26 +100,22 @@ def main():
         D18O_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        ctypes.pointer(samples_out),
-        ctypes.pointer(energy_out),
-        ctypes.pointer(bias_out),
+        samples_out,
+        energy_out,
+        bias_out,
     )
 
-    samples = np.ctypeslib.as_array(
-        samples_out, shape=(config["num_chains"], config["num_samples"], config["N"])
-    )
-    valid_samples = samples[:, int(config["num_samples"] / 2) :, :]
-    np.save("../../../../output/samples.npy", valid_samples)
+    samples = np.ctypeslib.as_array(samples_out)
+    samples = np.reshape(samples, (config["num_chains"], config["num_samples"], config["N"]))
+    np.save("../../../../output/samples.npy", samples)
 
-    energy_values = np.ctypeslib.as_array(
-        energy_out, shape=(config["num_chains"], config["num_samples"])
-    )
+    energy_values = np.ctypeslib.as_array(energy_out)
+    energy_values = np.reshape(energy_values, (config["num_chains"], config["num_samples"]))
     np.save("../../../../output/energy_values.npy", energy_values)
 
-    bias_values = np.ctypeslib.as_array(
-        bias_out, shape=(config["num_chains"], config["num_samples"])
-    )
-    np.save("../../../../output/bais_values.npy", bias_values)
+    bias_values = np.ctypeslib.as_array(bias_out)
+    bias_values = np.reshape(bias_values, (config["num_chains"], config["num_samples"]))
+    np.save("../../../../output/bias_values.npy", bias_values)
 
 
 if __name__ == "__main__":

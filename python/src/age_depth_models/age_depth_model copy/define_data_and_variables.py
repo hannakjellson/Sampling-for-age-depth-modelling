@@ -88,6 +88,7 @@ def get_data():
     D18O_depths = depths[D18O_mask][
         ::-1
     ]  # This does not overlap with the c14 depths in the file.
+    true_ages_d18O = true_ages[D18O_mask][::-1]
 
     data = {
         "theta": true_ages[0],
@@ -102,6 +103,7 @@ def get_data():
         "d18O_reference": D18O_reference,
         "num_D18O_depths": len(D18O_depths),
         "num_D18O_reference_times": len(D18O_reference_times),
+        "true_ages_D18O": true_ages_d18O,
     }
 
     return data
@@ -113,13 +115,13 @@ def get_hmc_config():
     delta_c = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.001
-    num_samples = 1000
+    num_samples = 10000000
     num_dt = 10
     num_HMC = 10
     num_chains = 4
     num_lambda = 121
     problem_index = 5
-    bias_sigma = 5
+    bias_sigma = 0.4
     a = 1.5
     b = 0.21
 
