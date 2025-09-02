@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import os
 
-
 def read_data(data):
     base_path = "../../../../data/"
     D18O_timeseries = None
@@ -110,38 +109,26 @@ def get_data():
 
 
 def get_hmc_config():
-    N = 10 # 50
-    H = 20 # 100
-    dc = H / N
+    N = 10
+    H = 20
+    delta_c = H / N
     cs = np.linspace(0, H, N + 1)
-    dt = 0.001
-    nsamples = 1000000
-    ndt = 10
-    nHMC = 10
-    nchains = 4
-    nlambda = 121
-    pidx = 5
-    sigma = 0.4
+    num_samples = 100000
+    num_chains = 4
     a = 1.5
-    b = 0.21
+    b = 0.27
 
     config = {
         "N": N,
         "H": H,
-        "dc": dc,
+        "delta_c": delta_c,
         "cs": cs,
-        "dt": dt,
-        "ndt": ndt,
-        "nHMC": nHMC,
-        "nsamples": nsamples,
-        "nchains": nchains,
-        "nlambda": nlambda, 
-        "pidx": pidx,
-        "sigma": sigma,
+        "num_samples": num_samples,
+        "num_chains": num_chains,
         "a": a,
-        "b": b,
+        "b": b
     }
-    
+
     config_str = "_".join(
     f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
     for k, v in config.items()

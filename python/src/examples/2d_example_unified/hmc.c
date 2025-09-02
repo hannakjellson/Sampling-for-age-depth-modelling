@@ -78,7 +78,7 @@ void update_delta_F(double x, int lambda_index, int num_lambda, double sigma_2, 
     }
 }
 
-void muo(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int num_lambda, double sigma,
+void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int num_lambda, double sigma,
          double *samples_out, double *energy_out, double *delta_F_out, double *bias_out)
 {
 
@@ -136,7 +136,10 @@ void muo(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
 
         for (int s = 0; s < num_samples; s++)
         {
-            printf("%d\n", s);
+            if (s % 10000 == 0)
+            {
+                printf("%d\n", s);
+            }
             for (int j = 0; j < num_HMC; j++)
             {
                 // sample momenta from Gaussian N(0,1)

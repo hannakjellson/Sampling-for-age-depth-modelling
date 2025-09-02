@@ -111,7 +111,7 @@ def get_data():
 
 def get_hmc_config():
     N = 10 # 50
-    H = 20 # 100
+    H = 19.79 # 100
     dc = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.001
@@ -119,11 +119,13 @@ def get_hmc_config():
     ndt = 10
     nHMC = 10
     nchains = 4
-    nlambda = 121
-    pidx = 5
-    sigma = 0.4
+    pidx = 5 # Problematic age
+    sigma = 1
     a = 1.5
     b = 0.21
+    gamma = 40
+    beta = 1.0
+    dE = 15.0
 
     config = {
         "N": N,
@@ -135,17 +137,19 @@ def get_hmc_config():
         "nHMC": nHMC,
         "nsamples": nsamples,
         "nchains": nchains,
-        "nlambda": nlambda, 
         "pidx": pidx,
         "sigma": sigma,
         "a": a,
         "b": b,
+        "gamma" : gamma,
+        "beta" : beta,
+        "dE" : dE,
     }
-    
     config_str = "_".join(
-    f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
-    for k, v in config.items()
-    if isinstance(v, (int, float))
+        f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
+        for k, v in config.items()
+        if isinstance(v, (int, float))
     )   
+    
 
     return config, config_str

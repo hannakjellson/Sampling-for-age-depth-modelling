@@ -185,9 +185,9 @@ void deposit_gaussian(double x, double width, double *bias_centers, double *bias
     }
 }
 
-void md(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double bias_std,
-        double *samples_out, double *energy_out, double *bias_out, double *bias_std_out,
-        double gamma, double beta, double d, double DeltaE)
+void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double bias_std,
+         double *samples_out, double *energy_out, double *bias_out, double *bias_std_out,
+         double gamma, double beta, double d, double DeltaE)
 {
 
 #pragma omp parallel for
@@ -256,8 +256,11 @@ void md(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double 
             bias_std_out[k * num_samples + j] = bias_std_j;
 
             deposit_gaussian(x_vec[0], bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[j], &sum_squared_weights, &bias_count, j);
-            Z = 1; // compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
-            // printf("%f\n", Z); // Bias_heights is huge and this makes Z huge after merging something is off after merging, probably with heights.
+            compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
+            if (j % 10000 == 0)
+            {
+                printf("%d\n", j);
+            }
 
             for (int l = 0; l < num_HMC; l++)
             {
@@ -324,7 +327,6 @@ void md(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, double 
                     accept++;
                 }
             }
-            printf("%d\n", j);
         }
         free(weights);
         free(kernel_weights);

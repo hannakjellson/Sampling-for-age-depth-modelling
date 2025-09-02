@@ -46,7 +46,7 @@ def interpolate(sed_rates, config, data):
 
 
 def main():
-    config = get_hmc_config()
+    config, config_str = get_hmc_config()
     data = get_data()
 
     with pm.Model() as model:
@@ -76,15 +76,15 @@ def main():
 
         # Sample
         trace = pm.sample(
-            int(config["num_MH"] / 2),
-            tune=int(config["num_MH"] / 2),
+            int(config["num_samples"] / 2),
+            tune=int(config["num_samples"] / 2),
             target_accept=0.9,
             return_inferencedata=True,
             chains=config["num_chains"],
         )
 
     sedimentation_rates = trace.posterior["sed_rates"].to_numpy()
-    np.save("../../../output/samples_pymc.npy", sedimentation_rates)
+    np.save(f"../../../../output/age_depth_pymc/samples_{config_str}.npy", sedimentation_rates)
 
 
 if __name__ == "__main__":

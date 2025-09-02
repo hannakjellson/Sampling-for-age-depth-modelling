@@ -4,22 +4,23 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from define_data_and_variables import get_data, get_hmc_config
+import datetime as datetime
 
 
 def define_c_types(lib):
     lib.hmc.argtypes = [
         ctypes.c_int,  # N
         ctypes.c_double,  # H
-        ctypes.c_double,  # delta_c
+        ctypes.c_double,  # dc
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.c_double,  # dt
-        ctypes.c_int,  # num_dt
-        ctypes.c_int,  # num_HMC
-        ctypes.c_int,  # num_chains
-        ctypes.c_int,  # num_samples
-        ctypes.c_int,  # num_lambda
-        ctypes.c_int,   # problem_index
-        ctypes.c_double,  # bias_sigma
+        ctypes.c_int,  # ndt
+        ctypes.c_int,  # nHMC
+        ctypes.c_int,  # nchains
+        ctypes.c_int,  # nsamples
+        ctypes.c_int,  # nlambda
+        ctypes.c_int,   # pidx
+        ctypes.c_double,  # sigma
         ctypes.c_double,  # a
         ctypes.c_double,  # b
         ctypes.c_double,  # theta
@@ -46,7 +47,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config = get_hmc_config()
+    config, config_str = get_hmc_config()
 
     # Load library depending on OS
     os.add_dll_directory("C:/msys64/ucrt64/bin")
@@ -67,7 +68,7 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    total = config["num_chains"] * config["num_samples"]
+    total = config["nchains"] * config["nsamples"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
@@ -76,16 +77,16 @@ def main():
     lib.hmc(
         ctypes.c_int(config["N"]),
         ctypes.c_double(config["H"]),
-        ctypes.c_double(config["delta_c"]),
+        ctypes.c_double(config["dc"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_double(config["dt"]),
-        ctypes.c_int(config["num_dt"]),
-        ctypes.c_int(config["num_HMC"]),
-        ctypes.c_int(config["num_chains"]),
-        ctypes.c_int(config["num_samples"]),
-        ctypes.c_int(config["num_lambda"]),
-        ctypes.c_int(config["problem_index"]),
-        ctypes.c_double(config["bias_sigma"]),
+        ctypes.c_int(config["ndt"]),
+        ctypes.c_int(config["nHMC"]),
+        ctypes.c_int(config["nchains"]),
+        ctypes.c_int(config["nsamples"]),
+        ctypes.c_int(config["nlambda"]),
+        ctypes.c_int(config["pidx"]),
+        ctypes.c_double(config["sigma"]),
         ctypes.c_double(config["a"]),
         ctypes.c_double(config["b"]),
         ctypes.c_double(data["theta"]),
@@ -106,16 +107,37 @@ def main():
     )
 
     samples = np.ctypeslib.as_array(samples_out)
-    samples = np.reshape(samples, (config["num_chains"], config["num_samples"], config["N"]))
-    np.save("../../../../output/samples.npy", samples)
+    samples = np.reshape(samples, (config["nchains"], config["nsamples"], config["N"]))
+    np.save(f"../../../../output/age_depth_unified/samples_{config_str}.npy", samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
-    energy_values = np.reshape(energy_values, (config["num_chains"], config["num_samples"]))
-    np.save("../../../../output/energy_values.npy", energy_values)
+    energy_values = np.reshape(energy_values, (config["nchains"], config["nsamples"]))
+    np.save(f"../../../../output/age_depth_unified/energy_values_{config_str}.npy", energy_values)
 
     bias_values = np.ctypeslib.as_array(bias_out)
-    bias_values = np.reshape(bias_values, (config["num_chains"], config["num_samples"]))
-    np.save("../../../../output/bias_values.npy", bias_values)
+    bias_values = np.reshape(bias_values, (config["nchains"], config["nsamples"]))
+    np.save(f"../../../../output/age_depth_unified/bias_values_{config_str}.npy", bias_values)
+
+    print("Resampling\n")
+    resampled_samples = []
+    cutout = 100
+
+    weights = np.exp(bias_values)
+    for i in range(config["nchains"]):
+        weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
+        indices = np.random.choice(
+            np.arange(cutout, len(weights_i) + cutout),
+            size=int(len(weights_i)),
+            replace=True,
+            p=weights_i,
+        )
+        print(f"Chain {i} done resampling")
+        resampled_samples.append(samples[i, indices, :])
+            
+
+    resampled_samples = np.array(resampled_samples)
+
+    np.save(f"../../../../output/age_depth_unified/resampsamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":
