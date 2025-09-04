@@ -4,26 +4,30 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 from define_data_and_variables import get_data, get_hmc_config
-from datetime import datetime
-from multiprocessing import Pool, cpu_count
+import datetime as datetime
 
 
 def define_c_types(lib):
     lib.hmc.argtypes = [
         ctypes.c_int,  # N
         ctypes.c_double,  # H
-        ctypes.c_double,  # delta_c
+        ctypes.c_double,  # dc
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.c_double,  # dt
-        ctypes.c_int,  # num_dt
-        ctypes.c_int,  # num_HMC
-        ctypes.c_int,  # num_chains
-        ctypes.c_int,  # num_samples
-        ctypes.c_int,   # problem_index
-        ctypes.c_double,  # bias_sigma
+        ctypes.c_int,  # ndt
+        ctypes.c_int,  # nHMC
+        ctypes.c_int,  # nchains
+        ctypes.c_int,  # nsamples
+        ctypes.c_int,  # nlambda
+        ctypes.c_int,   # pidx
+        ctypes.c_double,  # sigma
         ctypes.c_double,  # a
         ctypes.c_double,  # b
         ctypes.c_double,  # theta
+        ctypes.c_double,  # dflim
+        ctypes.c_double,  # startbias
+        ctypes.c_double,  # endbias
+        ctypes.c_double,  # dist
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
@@ -35,17 +39,12 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # D18O_sigma
         ctypes.POINTER(ctypes.c_double),  # D18O_reference
         ctypes.POINTER(ctypes.c_double),  # D18O_reference_times
-        ctypes.c_double,  # gamma
-        ctypes.c_double,  # beta
-        ctypes.c_double,  # DeltaE
-        ctypes.c_double,  # threshold
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
     ]
 
     lib.hmc.restype = None
-
 
     return lib
 
@@ -73,7 +72,7 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    total = config["nchains"] * config["nsamples"]
+    total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
@@ -87,13 +86,18 @@ def main():
         ctypes.c_double(config["dt"]),
         ctypes.c_int(config["ndt"]),
         ctypes.c_int(config["nHMC"]),
-        ctypes.c_int(config["nchains"]),
-        ctypes.c_int(config["nsamples"]),
+        ctypes.c_int(config["nch"]),
+        ctypes.c_int(config["ns"]),
+        ctypes.c_int(config["nl"]),
         ctypes.c_int(config["pidx"]),
-        ctypes.c_double(config["sigma"]),
+        ctypes.c_double(config["sig"]),
         ctypes.c_double(config["a"]),
         ctypes.c_double(config["b"]),
         ctypes.c_double(data["theta"]),
+        ctypes.c_double(config["dflim"]),
+        ctypes.c_double(config["sb"]),
+        ctypes.c_double(config["eb"]),
+        ctypes.c_double(config["dist"]),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -105,33 +109,29 @@ def main():
         D18O_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        ctypes.c_double(config["gamma"]),
-        ctypes.c_double(config["beta"]),
-        ctypes.c_double(config["dE"]),
-        ctypes.c_double(config["threshold"]),
         samples_out,
         energy_out,
         bias_out,
     )
 
     samples = np.ctypeslib.as_array(samples_out)
-    samples = np.reshape(samples, (config["nchains"], config["nsamples"], config["N"]))
-    np.save(f"../../../../output/age_depth_rethinking/samples_{config_str}.npy", samples)
+    samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
+    np.save(f"../../../../output/age_depth_unified_temp/samples_{config_str}.npy", samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
-    energy_values = np.reshape(energy_values, (config["nchains"], config["nsamples"]))
-    np.save(f"../../../../output/age_depth_rethinking/energy_values_{config_str}.npy", energy_values)
+    energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
+    np.save(f"../../../../output/age_depth_unified_temp/energy_values_{config_str}.npy", energy_values)
 
     bias_values = np.ctypeslib.as_array(bias_out)
-    bias_values = np.reshape(bias_values, (config["nchains"], config["nsamples"]))
-    np.save(f"../../../../output/age_depth_rethinking/bias_values_{config_str}.npy", bias_values)
+    bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
+    np.save(f"../../../../output/age_depth_unified_temp/bias_values_{config_str}.npy", bias_values)
 
     print("Resampling\n")
     resampled_samples = []
-    cutout = 100
+    cutout = config["co"]
 
     weights = np.exp(bias_values)
-    for i in range(config["nchains"]):
+    for i in range(config["nch"]):
         weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
         indices = np.random.choice(
             np.arange(cutout, len(weights_i) + cutout),
@@ -144,7 +144,8 @@ def main():
             
 
     resampled_samples = np.array(resampled_samples)
-    np.save(f"../../../../output/age_depth_rethinking/resampsamp_{config_str}.npy", resampled_samples)
+
+    np.save(f"../../../../output/age_depth_unified_temp/resampsamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":

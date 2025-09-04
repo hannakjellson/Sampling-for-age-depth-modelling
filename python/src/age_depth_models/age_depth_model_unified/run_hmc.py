@@ -24,6 +24,10 @@ def define_c_types(lib):
         ctypes.c_double,  # a
         ctypes.c_double,  # b
         ctypes.c_double,  # theta
+        ctypes.c_double,  # dflim
+        ctypes.c_double,  # startbias
+        ctypes.c_double,  # endbias
+        ctypes.c_double,  # dist
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
@@ -68,7 +72,7 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    total = config["nchains"] * config["nsamples"]
+    total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
@@ -82,14 +86,18 @@ def main():
         ctypes.c_double(config["dt"]),
         ctypes.c_int(config["ndt"]),
         ctypes.c_int(config["nHMC"]),
-        ctypes.c_int(config["nchains"]),
-        ctypes.c_int(config["nsamples"]),
-        ctypes.c_int(config["nlambda"]),
+        ctypes.c_int(config["nch"]),
+        ctypes.c_int(config["ns"]),
+        ctypes.c_int(config["nl"]),
         ctypes.c_int(config["pidx"]),
-        ctypes.c_double(config["sigma"]),
+        ctypes.c_double(config["sig"]),
         ctypes.c_double(config["a"]),
         ctypes.c_double(config["b"]),
         ctypes.c_double(data["theta"]),
+        ctypes.c_double(config["dflim"]),
+        ctypes.c_double(config["sb"]),
+        ctypes.c_double(config["eb"]),
+        ctypes.c_double(config["dist"]),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -107,23 +115,23 @@ def main():
     )
 
     samples = np.ctypeslib.as_array(samples_out)
-    samples = np.reshape(samples, (config["nchains"], config["nsamples"], config["N"]))
+    samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
     np.save(f"../../../../output/age_depth_unified/samples_{config_str}.npy", samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
-    energy_values = np.reshape(energy_values, (config["nchains"], config["nsamples"]))
+    energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
     np.save(f"../../../../output/age_depth_unified/energy_values_{config_str}.npy", energy_values)
 
     bias_values = np.ctypeslib.as_array(bias_out)
-    bias_values = np.reshape(bias_values, (config["nchains"], config["nsamples"]))
+    bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
     np.save(f"../../../../output/age_depth_unified/bias_values_{config_str}.npy", bias_values)
 
     print("Resampling\n")
     resampled_samples = []
-    cutout = 100
+    cutout = config["co"]
 
     weights = np.exp(bias_values)
-    for i in range(config["nchains"]):
+    for i in range(config["nch"]):
         weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
         indices = np.random.choice(
             np.arange(cutout, len(weights_i) + cutout),

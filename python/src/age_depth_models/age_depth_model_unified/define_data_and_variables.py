@@ -114,16 +114,21 @@ def get_hmc_config():
     H = 20 # 100
     dc = H / N
     cs = np.linspace(0, H, N + 1)
-    dt = 0.001
+    dt = 0.0025
     nsamples = 1000000
+    cutout = 10
     ndt = 10
     nHMC = 10
     nchains = 4
-    nlambda = 121
     pidx = 5
-    sigma = 0.4
     a = 1.5
     b = 0.21
+    dflim = 500
+    startbias = 1250
+    endbias = 1550
+    sigma = 0.4
+    nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
+    dist = 40
 
     config = {
         "N": N,
@@ -133,13 +138,18 @@ def get_hmc_config():
         "dt": dt,
         "ndt": ndt,
         "nHMC": nHMC,
-        "nsamples": nsamples,
-        "nchains": nchains,
-        "nlambda": nlambda, 
+        "ns": nsamples,
+        "nch": nchains,
+        "nl": nlambda, 
         "pidx": pidx,
-        "sigma": sigma,
+        "sig": sigma,
         "a": a,
         "b": b,
+        "co" : cutout,
+        "dflim" : dflim,
+        "sb" : startbias,
+        "eb" : endbias,
+        "dist" : dist,
     }
     
     config_str = "_".join(

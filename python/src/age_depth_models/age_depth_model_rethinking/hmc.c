@@ -12,29 +12,26 @@
 #include <omp.h>
 
 #define MAX_BIAS 10000
-#define distance_threshold 2
 
-int get_index(int N, const double *cs, const double *c14_depths, int depth_index)
+int binary_search(const double *arr, int n, double target)
 {
-    int low = 0, high = N - 1;
-    while (low <= high)
+    int left = 0, right = n;
+
+    while (left < right)
     {
-        int mid = (low + high) / 2;
-        if (cs[mid] < c14_depths[depth_index])
-        {
-            low = mid + 1;
-        }
+        int mid = (left + right) / 2;
+        if (arr[mid] < target)
+            left = mid + 1;
         else
-        {
-            high = mid - 1;
-        }
+            right = mid;
     }
-    return (low > 0) ? low - 1 : 0;
+
+    return left;
 }
 
 double find_min(double *arr, int size)
 {
-    double min = INT_MAX;
+    double min = DBL_MAX;
     for (int i = 0; i < size; ++i)
     {
         if (arr[i] < min)
@@ -50,7 +47,7 @@ void interpolate_D18O(
 {
     for (int i = 0; i < num_D18O_depths; i++)
     {
-        int index = get_index(num_D18O_reference_times, D18O_reference_times, D18O_times, i);
+        int index = binary_search(D18O_reference_times, num_D18O_reference_times, D18O_times[i]) - 1;
 
         double t0 = D18O_reference_times[index];
         double t1 = D18O_reference_times[index + 1];
@@ -158,8 +155,8 @@ void grad_energy_function(
         for (int i = 0; i < num_c14_depths; i++)
         {
             int j = c14_indices[i];
-            double f_l = (l < j) ? -delta_c : (l == j) ? -(c14_depths[i] - cs[j])
-                                                       : 0.0;
+            f_l = (l < j) ? -delta_c : (l == j) ? -(c14_depths[i] - cs[j])
+                                                : 0.0;
             if (f_l != 0.0)
             {
                 double diff = c14_ages[i] - expected_c14_ages[i];
@@ -171,8 +168,8 @@ void grad_energy_function(
         for (int i = 0; i < num_D18O_depths; i++)
         {
             int j = D18O_indices[i];
-            double f_l = (l < j) ? -delta_c : (l == j) ? -(D18O_depths[i] - cs[j])
-                                                       : 0.0;
+            f_l = (l < j) ? -delta_c : (l == j) ? -(D18O_depths[i] - cs[j])
+                                                : 0.0;
             if (f_l != 0.0)
             {
                 double diff = D18O[i] - D18O_reference_interp[i];
@@ -282,7 +279,7 @@ void new_kernel(double *bias_centers, double *bias_heights, double *bias_widths,
     (*bias_count)--;
 }
 
-void merge_kernels(int index, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count)
+void merge_kernels(int index, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count, double distance_threshold)
 {
     double distance = 0;
     while (*bias_count > 1)
@@ -304,23 +301,7 @@ void merge_kernels(int index, double *bias_centers, double *bias_heights, double
     }
 }
 
-int binary_search(double *arr, int n, double target)
-{
-    int left = 0, right = n;
-
-    while (left < right)
-    {
-        int mid = left + (right - left) / 2;
-        if (arr[mid] < target)
-            left = mid + 1;
-        else
-            right = mid;
-    }
-
-    return left;
-}
-
-void deposit_gaussian(double CV_point, double width, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double current_weight, double *sum_squared_weights, int *bias_count, int iterations)
+void deposit_gaussian(double CV_point, double width, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double current_weight, double *sum_squared_weights, int *bias_count, int iterations, double distance_threshold)
 {
     if (*bias_count < MAX_BIAS)
     {
@@ -335,7 +316,7 @@ void deposit_gaussian(double CV_point, double width, double *bias_centers, doubl
         bias_widths[index] = width;
         kernel_weights[index] = current_weight;
         (*bias_count)++;
-        merge_kernels(index, bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count);
+        merge_kernels(index, bias_centers, bias_heights, bias_widths, kernel_weights, sum_squared_weights, bias_count, distance_threshold);
     }
 }
 
@@ -344,7 +325,7 @@ void hmc(
     double dt, int num_dt, int num_HMC, int num_chains, int num_samples, int problem_index, double bias_sigma,
     double a, double b, double theta, int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages,
     const double *c14_depths, const double *c14_sigma, const double *D18O,
-    const double *D18O_depths, const double *D18O_sigma, const double *D18O_reference, const double *D18O_reference_times, double gamma, double beta, double DeltaE,
+    const double *D18O_depths, const double *D18O_sigma, const double *D18O_reference, const double *D18O_reference_times, double gamma, double beta, double DeltaE, double distance_threshold,
     double *samples_out, double *energy_out, double *bias_out)
 {
 
@@ -352,7 +333,7 @@ void hmc(
     double inv_c14_var[num_c14_depths];
     for (int i = 0; i < num_c14_depths; i++)
     {
-        c14_depth_indices[i] = get_index(N, cs, c14_depths, i);
+        c14_depth_indices[i] = binary_search(cs, N + 1, c14_depths[i]) - 1;
         inv_c14_var[i] = 1.0 / (c14_sigma[i] * c14_sigma[i]);
     }
 
@@ -360,7 +341,7 @@ void hmc(
     double inv_D18O_var[num_D18O_depths];
     for (int i = 0; i < num_D18O_depths; i++)
     {
-        D18O_depth_indices[i] = get_index(N, cs, D18O_depths, i);
+        D18O_depth_indices[i] = binary_search(cs, N + 1, D18O_depths[i]) - 1;
         inv_D18O_var[i] = 1.0 / (D18O_sigma[i] * D18O_sigma[i]);
     }
 
@@ -428,7 +409,7 @@ void hmc(
             }
             energy_out[i * num_samples + l] = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_reference, D18O_reference_times, variables);
             bias_out[i * num_samples + l] = potential;
-            deposit_gaussian(CV_point, bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[l], &sum_squared_weights, &bias_count, l);
+            deposit_gaussian(CV_point, bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[l], &sum_squared_weights, &bias_count, l, distance_threshold);
             Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
 
             if (l % 10000 == 0)
@@ -526,6 +507,7 @@ void hmc(
                     logp_new = logp_old;
                 }
             }
+            // printf("%f\n", variables[0]);
         }
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);

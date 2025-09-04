@@ -114,19 +114,21 @@ def get_hmc_config():
     H = 20 # 100
     dc = H / N
     cs = np.linspace(0, H, N + 1)
-    dt = 0.002
-    nsamples = 10000
+    dt = 0.0025
+    nsamples = 1000000
+    cutout = 10
     ndt = 10
     nHMC = 10
     nchains = 4
-    pidx = 5 # Problematic age
-    sigma = 0.4
+    pidx = 5
     a = 1.5
     b = 0.21
-    gamma = 40
-    beta = 1.0
-    dE = 300.0
-    threshold = sigma / 2
+    dflim = 500
+    startbias = 1250
+    endbias = 1550
+    sigma = 0.4
+    nlambda = (int)((endbias - startbias) / (4 * sigma))
+    dist = 40
 
     config = {
         "N": N,
@@ -136,22 +138,24 @@ def get_hmc_config():
         "dt": dt,
         "ndt": ndt,
         "nHMC": nHMC,
-        "nsamples": nsamples,
-        "nchains": nchains,
+        "ns": nsamples,
+        "nch": nchains,
+        "nl": nlambda, 
         "pidx": pidx,
-        "sigma": sigma,
+        "sig": sigma,
         "a": a,
         "b": b,
-        "gamma" : gamma,
-        "beta" : beta,
-        "dE" : dE,
-        "threshold" : threshold,
+        "co" : cutout,
+        "dflim" : dflim,
+        "sb" : startbias,
+        "eb" : endbias,
+        "dist" : dist,
     }
-    config_str = "_".join(
-        f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
-        for k, v in config.items()
-        if isinstance(v, (int, float))
-    )   
     
+    config_str = "_".join(
+    f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
+    for k, v in config.items()
+    if isinstance(v, (int, float))
+    )   
 
     return config, config_str
