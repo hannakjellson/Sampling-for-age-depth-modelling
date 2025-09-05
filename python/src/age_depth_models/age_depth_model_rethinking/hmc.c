@@ -29,17 +29,6 @@ int binary_search(const double *arr, int n, double target)
     return left;
 }
 
-double find_min(double *arr, int size)
-{
-    double min = DBL_MAX;
-    for (int i = 0; i < size; ++i)
-    {
-        if (arr[i] < min)
-            min = arr[i];
-    }
-    return min;
-}
-
 void interpolate_D18O(
     int num_D18O_depths, int num_D18O_reference_times,
     const double *D18O_times, const double *D18O_reference, const double *D18O_reference_times,
@@ -183,6 +172,7 @@ void grad_energy_function(
 double get_CV_point(int N, double theta, double variables[N], int problem_index, double delta_c)
 {
     double sum = theta;
+    // printf("vars: %f\n", variables[0]);
     for (int i = 0; i < problem_index; i++)
     {
         sum -= variables[i] * delta_c;
@@ -198,11 +188,34 @@ double get_probability_estimate(double CV_point, double *bias_centers, double *b
         double dx = CV_point - bias_centers[i];
         probability_estimate += kernel_weights[i] * bias_heights[i] * exp(-dx * dx / (2 * bias_widths[i] * bias_widths[i]));
     }
-    if (bias_count > 0)
+    if (bias_count > 0 && sum_weights > 0)
     {
         probability_estimate /= sum_weights;
     }
     return probability_estimate;
+}
+
+void get_probability_estimate_log(double CV_point, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights, double *log_factor, double *other_factor)
+{
+    double terms[bias_count];
+    for (int i = 0; i < bias_count; i++)
+    {
+        double dx = CV_point - bias_centers[i];
+        terms[i] = log(kernel_weights[i]) + log(bias_heights[i]) - dx * dx / (2 * bias_widths[i] * bias_widths[i]) - log(sum_weights);
+    }
+
+    double max_term = terms[0];
+    for (int i = 1; i < bias_count; i++)
+    {
+        if (terms[i] > max_term)
+            max_term = terms[i];
+    }
+    *log_factor = max_term;
+
+    for (int i = 0; i < bias_count; i++)
+    {
+        *other_factor += exp(terms[i] - max_term);
+    }
 }
 
 double get_probability_estimate_gradient(double CV_point, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights)
@@ -213,11 +226,38 @@ double get_probability_estimate_gradient(double CV_point, double *bias_centers, 
         double dx = CV_point - bias_centers[i];
         dp += kernel_weights[i] * bias_heights[i] * (-dx / (bias_widths[i] * bias_widths[i])) * exp(-dx * dx / (2 * bias_widths[i] * bias_widths[i]));
     }
-    if (bias_count > 0)
+    if (bias_count > 0 && sum_weights > 0)
     {
         dp /= sum_weights;
     }
     return dp;
+}
+
+void get_probability_estimate_gradient_log(double CV_point, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights, double *log_factor, double *other_factor)
+{
+    double dp = 0.0;
+    double pos_terms[bias_count];
+
+    for (int i = 0; i < bias_count; i++)
+    {
+        double dx = CV_point - bias_centers[i];
+        pos_terms[i] = log(kernel_weights[i]) + log(bias_heights[i]) - dx * dx / (2 * bias_widths[i] * bias_widths[i]) - log(sum_weights);
+    }
+
+    double max_term = pos_terms[0];
+    for (int i = 1; i < bias_count; i++)
+    {
+        if (pos_terms[i] > max_term)
+            max_term = pos_terms[i];
+    }
+
+    *log_factor = max_term;
+
+    for (int i = 0; i < bias_count; i++)
+    {
+        double dx = CV_point - bias_centers[i];
+        *other_factor += exp(pos_terms[i] - max_term) * (-dx / (bias_widths[i] * bias_widths[i]));
+    }
 }
 
 double compute_Zn(double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights)
@@ -236,19 +276,24 @@ double compute_Zn(double *bias_centers, double *bias_heights, double *bias_width
 
 double bias_potential(double CV_point, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights, double Z, double DeltaE)
 {
-    double probability_estimate = get_probability_estimate(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
-    double epsilon = exp(-beta * DeltaE / (1.0 - (1.0 / gamma)));
-    double V = (1.0 - (1.0 / gamma)) * log(probability_estimate / Z + epsilon) / beta;
+    double log_factor = 0;
+    double other_factor = 0;
+    get_probability_estimate_log(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, &log_factor, &other_factor);
+    double epsilon_minus_log_factor = exp(-beta * DeltaE / (1.0 - (1.0 / gamma)) - log_factor);
+    double V = (1.0 - (1.0 / gamma)) * (-beta * DeltaE / (1.0 - (1.0 / gamma)) + log((other_factor / (Z * epsilon_minus_log_factor)) + 1)) / beta;
     return V;
 }
 
-void grad_bias(int N, double variables[N], double theta, int problem_index, double delta_c, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights, double Z, double DeltaE, double gradient[N])
+void grad_bias(int N, double variables[N], double CV_point, double theta, int problem_index, double delta_c, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double beta, double sum_weights, double Z, double DeltaE, double gradient[N])
 {
-    double CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
-    double probability_estimate = get_probability_estimate(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
-    double probability_estimate_gradient = get_probability_estimate_gradient(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
-    double epsilon = exp(-beta * DeltaE / (1.0 - (1.0 / gamma)));
-    double dV = (1.0 - (1.0 / gamma)) * probability_estimate_gradient / (Z * beta * ((probability_estimate / Z) + epsilon));
+    double log_factor_prob = 0;
+    double other_factor_prob = 0;
+    get_probability_estimate_log(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, &log_factor_prob, &other_factor_prob);
+    double log_factor_grad = 0;
+    double other_factor_grad = 0;
+    get_probability_estimate_gradient_log(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, &log_factor_grad, &other_factor_grad);
+    double epsilon_minus_log_factor = exp(-beta * DeltaE / (1.0 - (1.0 / gamma)) - log_factor_prob);
+    double dV = (1.0 - (1.0 / gamma)) * exp(log_factor_grad - log_factor_prob) * other_factor_grad / (Z * beta * ((other_factor_prob / Z) + epsilon_minus_log_factor));
     for (int i = 0; i < N; i++)
     {
         gradient[i] = (i < problem_index) ? dV * variables[i] * (-delta_c) : 0;
@@ -395,12 +440,20 @@ void hmc(
 
         for (int l = 0; l < num_samples; l++)
         {
+            if (isnan(variables[0]))
+            {
+                printf("Error: NaN detected in chain: %d!\n", i);
+                exit(EXIT_FAILURE);
+            }
             CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
             double potential = bias_potential(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE);
+            // printf("%f\n", potential);
             weights[l] = exp(beta * potential);
+            // printf("weight: %f\n", weights[l]);
             sum_weights += weights[l];
             sum_squared_weights += weights[l] * weights[l];
-            N_eff = sum_weights * sum_weights / sum_squared_weights;
+            N_eff = (sum_squared_weights > 0) ? sum_weights * sum_weights / sum_squared_weights : 1;
+            // printf("neff: %f\n", N_eff);
             double bias_std_j = bias_sigma * pow(N_eff * (N + 2) / 4.0, -1.0 / (N + 4.0));
 
             for (int j = 0; j < N; j++)
@@ -411,10 +464,9 @@ void hmc(
             bias_out[i * num_samples + l] = potential;
             deposit_gaussian(CV_point, bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[l], &sum_squared_weights, &bias_count, l, distance_threshold);
             Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights);
-
-            if (l % 10000 == 0)
+            if (l % 1000 == 0)
             {
-                printf("%d\n", l / 10000);
+                printf("chain: %d, iteration: %d\n", i, l);
             }
 
             for (int j = 0; j < num_HMC; j++)
@@ -429,17 +481,17 @@ void hmc(
                 expected_ages(N, delta_c, cs, theta, num_c14_depths, c14_depths, variables, c14_depth_indices, c14_expected_ages);
                 expected_ages(N, delta_c, cs, theta, num_D18O_depths, D18O_depths, variables, D18O_depth_indices, D18O_expected_ages);
 
+                logp_old = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
+                                           c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_reference, D18O_reference_times, variables) +
+                           bias_potential(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE);
                 // Compute gradient at old state
                 grad_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
                                      num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                      D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
                 CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
-                grad_bias(N, variables, theta, problem_index, delta_c, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE, bias_gradient);
+                grad_bias(N, variables, CV_point, theta, problem_index, delta_c, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE, bias_gradient);
 
-                logp_old = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
-                                           c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_reference, D18O_reference_times, variables) +
-                           bias_potential(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE);
-
+                // printf("%f\n", bias_gradient[0]);
                 // Initial half step for momentum
                 for (int n = 0; n < N; n++)
                 {
@@ -462,8 +514,10 @@ void hmc(
                                          num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                          D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
                     CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
-                    grad_bias(N, variables, theta, problem_index, delta_c, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE, bias_gradient);
+                    // printf("CV: %f\n", CV_point);
+                    grad_bias(N, variables, CV_point, theta, problem_index, delta_c, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, beta, sum_weights, Z, DeltaE, bias_gradient);
 
+                    // printf("grad: %e\n", bias_gradient[0]);
                     if (k != num_dt - 1)
                     {
                         for (int n = 0; n < N; n++)
@@ -493,7 +547,7 @@ void hmc(
                 mean_acceptance += acceptance_prob;
                 double random_number = gsl_rng_uniform(r);
 
-                bool keep_variables = random_number > acceptance_prob;
+                bool keep_variables = random_number >= acceptance_prob;
                 for (int m = 0; m < N; m++)
                 {
                     if (keep_variables)
@@ -507,7 +561,7 @@ void hmc(
                     logp_new = logp_old;
                 }
             }
-            // printf("%f\n", variables[0]);
+            printf("%d\n", bias_count);
         }
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);

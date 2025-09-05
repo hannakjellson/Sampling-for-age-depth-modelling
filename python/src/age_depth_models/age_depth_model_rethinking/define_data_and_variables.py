@@ -125,7 +125,7 @@ def get_hmc_config():
     b = 0.21
     gamma = 40
     beta = 1.0
-    dE = 300.0
+    dE = 500.0
     threshold = sigma / 2
 
     config = {
@@ -136,8 +136,8 @@ def get_hmc_config():
         "dt": dt,
         "ndt": ndt,
         "nHMC": nHMC,
-        "nsamples": nsamples,
-        "nchains": nchains,
+        "ns": nsamples,
+        "nch": nchains,
         "pidx": pidx,
         "sigma": sigma,
         "a": a,
@@ -145,7 +145,7 @@ def get_hmc_config():
         "gamma" : gamma,
         "beta" : beta,
         "dE" : dE,
-        "threshold" : threshold,
+        "th" : threshold,
     }
     config_str = "_".join(
         f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
