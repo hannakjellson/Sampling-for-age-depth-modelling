@@ -312,6 +312,27 @@ void hmc(
             log_variables[j] = log(variables[j]);
         }
 
+        double new_variables[N];
+        double min_energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_reference, D18O_reference_times, variables);
+        for (int j = 0; j < 100; j++)
+        {
+            for (int l = 0; l < N; l++)
+            {
+                new_variables[l] = gsl_ran_gamma(r, a, 1 / b);
+            }
+
+            double energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_reference, D18O_reference_times, new_variables);
+            if (energy < min_energy)
+            {
+                min_energy = energy;
+                for (int l = 0; l < N; l++)
+                {
+                    variables[l] = new_variables[l];
+                    log_variables[l] = log(variables[l]);
+                }
+            }
+        }
+
         CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
         CV_point_plus_three_sigma = CV_point + bias_distance_count * bias_sigma;
         CV_point_minus_three_sigma = CV_point - bias_distance_count * bias_sigma;
