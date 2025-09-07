@@ -115,7 +115,7 @@ def get_hmc_config():
     dc = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.0025
-    nsamples = 10000
+    nsamples = 1000
     cutout = 10
     ndt = 100
     nHMC = 10

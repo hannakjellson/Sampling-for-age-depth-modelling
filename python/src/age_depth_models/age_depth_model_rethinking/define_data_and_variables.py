@@ -115,7 +115,7 @@ def get_hmc_config():
     dc = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.0025
-    nsamples = 100
+    nsamples = 10000
     ndt = 100
     nHMC = 10
     nchains = 4
@@ -125,7 +125,7 @@ def get_hmc_config():
     b = 0.21
     gamma = 40
     beta = 1.0
-    dE = 40.0
+    dE = 30.0
     threshold = sigma / 2
 
     config = {
