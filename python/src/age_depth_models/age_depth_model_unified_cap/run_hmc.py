@@ -28,6 +28,7 @@ def define_c_types(lib):
         ctypes.c_double,  # startbias
         ctypes.c_double,  # endbias
         ctypes.c_double,  # dist
+        ctypes.c_double,  # gamma
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
@@ -97,7 +98,8 @@ def main():
         ctypes.c_double(config["dflim"]),
         ctypes.c_double(config["sb"]),
         ctypes.c_double(config["eb"]),
-        ctypes.c_double(config["dist"]),
+        ctypes.c_double(config["d"]),
+        ctypes.c_double(config["g"]),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -116,15 +118,17 @@ def main():
 
     samples = np.ctypeslib.as_array(samples_out)
     samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
-    np.save(f"../../../../output/age_depth_unified_temp/samples_{config_str}.npy", samples)
+    np.save(f"../../../../output/age_depth_unified_cap/samples_{config_str}.npy", samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
-    np.save(f"../../../../output/age_depth_unified_temp/energy_values_{config_str}.npy", energy_values)
-
+    np.save(f"../../../../output/age_depth_unified_cap/energy_{config_str}.npy", energy_values)
+    print(energy_values)
+    
     bias_values = np.ctypeslib.as_array(bias_out)
+    print(bias_values)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
-    np.save(f"../../../../output/age_depth_unified_temp/bias_values_{config_str}.npy", bias_values)
+    np.save(f"../../../../output/age_depth_unified_cap/bias_{config_str}.npy", bias_values)
 
     print("Resampling\n")
     resampled_samples = []
@@ -145,7 +149,7 @@ def main():
 
     resampled_samples = np.array(resampled_samples)
 
-    np.save(f"../../../../output/age_depth_unified_temp/resampsamp_{config_str}.npy", resampled_samples)
+    np.save(f"../../../../output/age_depth_unified_cap/resamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":

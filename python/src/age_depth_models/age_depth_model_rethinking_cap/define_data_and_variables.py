@@ -115,20 +115,20 @@ def get_hmc_config():
     dc = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.0025
-    nsamples = 1000000
-    cutout = 10
-    ndt = 10
+    nsamples = 1000
+    ndt = 100
     nHMC = 10
     nchains = 4
-    pidx = 5
+    pidx = 5 # Problematic age
+    sigma = 0.4
     a = 1.5
     b = 0.21
-    dflim = 500
+    gamma = 40
+    beta = 1.0
+    dE = 30.0
+    threshold = sigma / 2
     startbias = 1250
     endbias = 1550
-    sigma = 0.4
-    nlambda = (int)((endbias - startbias) / (4 * sigma))
-    dist = 40
 
     config = {
         "N": N,
@@ -140,22 +140,22 @@ def get_hmc_config():
         "nHMC": nHMC,
         "ns": nsamples,
         "nch": nchains,
-        "nl": nlambda, 
         "pidx": pidx,
-        "sig": sigma,
+        "sigma": sigma,
         "a": a,
         "b": b,
-        "co" : cutout,
-        "dflim" : dflim,
+        "gamma" : gamma,
+        "beta" : beta,
+        "dE" : dE,
+        "th" : threshold,
         "sb" : startbias,
         "eb" : endbias,
-        "dist" : dist,
     }
-    
     config_str = "_".join(
-    f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
-    for k, v in config.items()
-    if isinstance(v, (int, float))
+        f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
+        for k, v in config.items()
+        if isinstance(v, (int, float))
     )   
+    
 
     return config, config_str
