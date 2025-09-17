@@ -29,6 +29,7 @@ def define_c_types(lib):
         ctypes.c_double,  # endbias
         ctypes.c_double,  # dist
         ctypes.c_double,  # gamma
+        ctypes.c_double,  # cap_energy_scale
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
@@ -40,6 +41,8 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # D18O_sigma
         ctypes.POINTER(ctypes.c_double),  # D18O_reference
         ctypes.POINTER(ctypes.c_double),  # D18O_reference_times
+        ctypes.POINTER(ctypes.c_double),  # starting_points
+        ctypes.c_double,  # min_energy
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
@@ -53,6 +56,7 @@ def define_c_types(lib):
 def main():
     data = get_data()
     config, config_str = get_hmc_config()
+    _, config_str_find_min = get_hmc_config(True)
 
     # Load library depending on OS
     os.add_dll_directory("C:/msys64/ucrt64/bin")
@@ -78,6 +82,16 @@ def main():
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
+    sp = np.load(f"../../../../output/age_depth_unified_cap/samples_min_{config_str_find_min}.npy")
+    energies = np.load(f"../../../../output/age_depth_unified_cap/Emin_{config_str_find_min}.npy")
+    energy_idx = np.argsort(energies)
+
+    energies = energies[energy_idx]
+    sp=sp[energy_idx, :]
+
+    sp = sp[0:config["nch"], :]
+    sp = np.ascontiguousarray(sp, dtype = np.float64)
+    min_energy = energies[0]
 
     lib.hmc(
         ctypes.c_int(config["N"]),
@@ -100,6 +114,7 @@ def main():
         ctypes.c_double(config["eb"]),
         ctypes.c_double(config["d"]),
         ctypes.c_double(config["g"]),
+        ctypes.c_double(config["ces"]),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -111,6 +126,8 @@ def main():
         D18O_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        ctypes.c_double(min_energy),
         samples_out,
         energy_out,
         bias_out,
@@ -130,26 +147,26 @@ def main():
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
     np.save(f"../../../../output/age_depth_unified_cap/bias_{config_str}.npy", bias_values)
 
-    print("Resampling\n")
-    resampled_samples = []
-    cutout = config["co"]
+    # print("Resampling\n")
+    # resampled_samples = []
+    # cutout = config["co"]
 
-    weights = np.exp(bias_values)
-    for i in range(config["nch"]):
-        weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
-        indices = np.random.choice(
-            np.arange(cutout, len(weights_i) + cutout),
-            size=int(len(weights_i)),
-            replace=True,
-            p=weights_i,
-        )
-        print(f"Chain {i} done resampling")
-        resampled_samples.append(samples[i, indices, :])
+    # weights = np.exp(bias_values)
+    # for i in range(config["nch"]):
+    #     weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
+    #     indices = np.random.choice(
+    #         np.arange(cutout, len(weights_i) + cutout),
+    #         size=int(len(weights_i)),
+    #         replace=True,
+    #         p=weights_i,
+    #     )
+    #     print(f"Chain {i} done resampling")
+    #     resampled_samples.append(samples[i, indices, :])
             
 
-    resampled_samples = np.array(resampled_samples)
+    # resampled_samples = np.array(resampled_samples)
 
-    np.save(f"../../../../output/age_depth_unified_cap/resamp_{config_str}.npy", resampled_samples)
+    # np.save(f"../../../../output/age_depth_unified_cap/resamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":
