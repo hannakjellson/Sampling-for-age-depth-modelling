@@ -13,6 +13,7 @@ def define_c_types(lib):
         ctypes.c_double,  # H
         ctypes.c_double,  # dc
         ctypes.POINTER(ctypes.c_double),  # cs
+        ctypes.POINTER(ctypes.c_double),  # sp
         ctypes.c_double,  # dt
         ctypes.c_int,  # ndt
         ctypes.c_int,  # nHMC
@@ -53,6 +54,7 @@ def define_c_types(lib):
 def main():
     data = get_data()
     config, config_str = get_hmc_config()
+    config_find_min, config_find_min_str = get_hmc_config(True)
 
     # Load library depending on OS
     os.add_dll_directory("C:/msys64/ucrt64/bin")
@@ -73,6 +75,13 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
+    energies = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unified_cap/Emin_N50_H100_dc2.00_a1.50_b0.21_nch4_nlsp1000_mi100000_dt0.00_gl0.00.npy")
+    idx = np.argsort(energies)
+    sp = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unified_cap/samples_min_N50_H100_dc2.00_a1.50_b0.21_nch4_nlsp1000_mi100000_dt0.00_gl0.00.npy")
+    sp = sp[idx, :]
+    energies = energies[idx]
+    sp = sp[:config["nch"], :]
+
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
@@ -84,6 +93,7 @@ def main():
         ctypes.c_double(config["H"]),
         ctypes.c_double(config["dc"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_double(config["dt"]),
         ctypes.c_int(config["ndt"]),
         ctypes.c_int(config["nHMC"]),

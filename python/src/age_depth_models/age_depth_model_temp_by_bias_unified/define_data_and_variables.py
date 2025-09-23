@@ -75,7 +75,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu26")
+    ) = read_data("dayu06")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -109,51 +109,84 @@ def get_data():
     return data
 
 
-def get_hmc_config():
-    N = 10 # 50
-    H = 20 # 100
-    dc = H / N
-    cs = np.linspace(0, H, N + 1)
-    dt = 0.003
-    nsamples = 1000000
-    cutout = 100
-    ndt = 100
-    nHMC = 10
-    nchains = 4
-    pidx = 5
-    a = 1.5
-    b = 0.21
-    dflim = 10
-    startbias = 1250 # Todo: try to find out when and why it goes unstable if i increase delta F and think about what happens if i do, i guess I allow to go to less likeli regions, which is good for finding them but not good for uniform sampling.
-    endbias = 1550
-    sigma = 0.4
-    nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
-    dist = 40
-    gamma = 7
+def get_hmc_config(find_min = False):
+    if not find_min:
+        N = 50 # 50
+        H = 100 # 100
+        dc = H / N
+        cs = np.linspace(0, H, N + 1)
+        dt = 0.003
+        nsamples = 100000
+        cutout = 1000
+        ndt = 10
+        nHMC = 10
+        nchains = 5
+        pidx = 45
+        a = 1.5
+        b = 0.21
+        dflim = 10
+        startbias = 1250
+        endbias = 1550
+        sigma = 0.4
+        nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
+        dist = 40
+        gamma = 1
+        config = {
+            "N": N,
+            "H": H,
+            "dc": dc,
+            "cs": cs,
+            "dt": dt,
+            "ndt": ndt,
+            "nHMC": nHMC,
+            "ns": nsamples,
+            "nch": nchains,
+            "nl": nlambda, 
+            "pidx": pidx,
+            "sig": sigma,
+            "a": a,
+            "b": b,
+            "co" : cutout,
+            "dflim" : dflim,
+            "sb" : startbias,
+            "eb" : endbias,
+            "d" : dist,
+            "g" : gamma,
+        }
+    else:
+        N = 50 # 50
+        H = 100 # 100
+        dc = H / N
+        cs = np.linspace(0, H, N + 1)
+        nchains = 12
+        a = 1.5
+        b = 0.21
+        dflim = 10
+        startbias = 1250
+        endbias = 1550
+        sigma = 0.4
+        nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
+        dist = 40
+        gamma = 5
 
-    config = {
-        "N": N,
-        "H": H,
-        "dc": dc,
-        "cs": cs,
-        "dt": dt,
-        "ndt": ndt,
-        "nHMC": nHMC,
-        "ns": nsamples,
-        "nch": nchains,
-        "nl": nlambda, 
-        "pidx": pidx,
-        "sig": sigma,
-        "a": a,
-        "b": b,
-        "co" : cutout,
-        "dflim" : dflim,
-        "sb" : startbias,
-        "eb" : endbias,
-        "d" : dist,
-        "g" : gamma,
-    }
-    
+        # For find_min_energy
+        num_local_sp = 1000
+        max_iter = 10000
+        stepsize = 0.0001
+        grad_lim = 1e-3
+        config = {
+            "N" : N,
+            "H" : H, 
+            "dc": dc,
+            "cs": cs,
+            "a": a,
+            "b": b,
+            "nch": nchains,
+            "nlsp" : num_local_sp,
+            "mi" : max_iter,
+            "dt" : stepsize,
+            "gl" : grad_lim,
+        }
     config_str = "_".join(
     f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
     for k, v in config.items()
