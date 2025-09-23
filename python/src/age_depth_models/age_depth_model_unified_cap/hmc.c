@@ -126,7 +126,7 @@ double capped_energy_function(
     int N, double delta_c, const double *cs, double a, double b, double theta,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int c14_depth_indices[num_c14_depths], double inv_c14_var[num_c14_depths], double c14_expected_ages[num_c14_depths], const double *D18O, const double *D18O_depths, const double *D18O_sigma,
-    int D18O_depth_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double expected_D18O_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double cap_energy, double gamma, double CV_point, double start_bias, double end_bias, double cap_energy_scale)
+    int D18O_depth_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double expected_D18O_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double bottom_cap_energy, double top_cap_energy, double gamma, double CV_point, double start_bias, double end_bias, double cap_energy_scale)
 {
 
     //-log(p(log(sed_rates)|data))
@@ -157,21 +157,19 @@ double capped_energy_function(
         D18O_conditional += inv_D18O_var[i] * diff * diff / 2;
     }
     double energy = prior + c14_conditional + D18O_conditional;
-    if (energy <= cap_energy)
+    double cap_energy = energy > top_cap_energy ? top_cap_energy : bottom_cap_energy;
+    if (energy > top_cap_energy || energy < bottom_cap_energy)
     {
-        return energy;
+        energy = cap_energy + ((energy - cap_energy) * ((1 - cap_energy_scale) / (1 + ((energy - cap_energy) * (energy - cap_energy))) + cap_energy_scale));
     }
-    else
-    {
-        return cap_energy + ((energy - cap_energy) * ((1 - cap_energy_scale) / (1 + ((energy - cap_energy) * (energy - cap_energy))) + cap_energy_scale));
-    }
+    return energy;
 }
 
 void grad_capped_energy_function(
     int N, double delta_c, const double *cs, double a, double b, double theta,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int c14_indices[num_c14_depths], double inv_c14_var[num_c14_depths], double c14_expected_ages[num_c14_depths], const double *D18O, const double *D18O_depths, const double *D18O_sigma,
-    int D18O_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double D18O_expected_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double cap_energy, double gamma, double gradient[N], double CV_point, double start_bias, double end_bias, double cap_energy_scale)
+    int D18O_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double D18O_expected_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double bottom_cap_energy, double top_cap_energy, double gamma, double gradient[N], double CV_point, double start_bias, double end_bias, double cap_energy_scale)
 {
     // derivative of -log(p(log(sed_rates)|data)) with respect to log(sed_rates)
     double f_l;
@@ -219,9 +217,10 @@ void grad_capped_energy_function(
         // printf("gradient in function %f\n", grad);
     }
     double energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, sed_rates);
-    if (energy > cap_energy)
+    double cap_energy = energy > top_cap_energy ? top_cap_energy : bottom_cap_energy;
+    if (energy > top_cap_energy || energy < bottom_cap_energy)
     {
-        double diff_square = (energy - cap_energy) * (energy - cap_energy);
+        double diff_square = (energy - top_cap_energy) * (energy - top_cap_energy);
         for (int i = 0; i < N; i++)
         {
             gradient[i] *= (((1 - cap_energy_scale) / (1 + diff_square)) + cap_energy_scale - (2 * (1 - cap_energy_scale) * diff_square / ((1 + diff_square) * (1 + diff_square))));
@@ -410,6 +409,8 @@ void find_min_energy(int N, double delta_c, const double *cs, double a, double b
             log_variables[j] = log(variables[j]);
         }
 
+        double *velocity = calloc(N, sizeof(double));
+        double gamma = 0.9;
         for (int j = 0; j < max_iter; j++)
         {
             expected_ages(N, delta_c, cs, theta, num_c14_depths, c14_depths,
@@ -418,6 +419,7 @@ void find_min_energy(int N, double delta_c, const double *cs, double a, double b
                           variables, D18O_depth_indices, D18O_expected_ages);
             double energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
 
+            printf("%f\n", energy);
             if (energy < temp[i].energy)
             {
                 temp[i].energy = energy;
@@ -430,13 +432,16 @@ void find_min_energy(int N, double delta_c, const double *cs, double a, double b
                                  num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                  D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
 
+            printf("gradient %f\n", norm(N, gradient));
             if (norm(N, gradient) < grad_lim)
             {
                 break;
             }
+
             for (int k = 0; k < N; k++)
             {
-                log_variables[k] -= gradient[k] * stepsize;
+                velocity[k] = gamma * velocity[k] - gradient[k] * stepsize;
+                log_variables[k] += velocity[k];
                 variables[k] = exp(log_variables[k]);
             }
         }
@@ -490,7 +495,8 @@ void hmc(
         D18O_depth_indices[i] = binary_search(cs, N + 1, D18O_depths[i]) - 1;
         inv_D18O_var[i] = 1.0 / (D18O_sigma[i] * D18O_sigma[i]);
     }
-    double cap_energy = Emin + dflim; // Emin + dflim;
+    double cap_energy_top = Emin + dflim;
+    double cap_energy_bottom = Emin - dflim;
 
 #pragma omp parallel for
     for (int i = 0; i < num_chains; i++)
@@ -516,6 +522,8 @@ void hmc(
         double mean_acceptance = 0.0;
         double logp_new;
         double logp_old;
+        double energy_new;
+        double energy_old;
         double kinetic_new;
         double kinetic_old;
         double CV_point;
@@ -530,7 +538,7 @@ void hmc(
 
         for (int j = 0; j < N; j++)
         {
-            variables[j] = starting_points[i * N + j];
+            variables[j] = gsl_ran_gamma(r, a, 1 / b);
             log_variables[j] = log(variables[j]);
         }
 
@@ -563,10 +571,10 @@ void hmc(
 
         for (int l = 0; l < num_samples; l++)
         {
-            // if (l % 10000 == 0)
-            // {
-            //     printf("%d\n", l / 10000);
-            // }
+            if (l % 10000 == 0)
+            {
+                printf("%d\n", l / 10000);
+            }
             for (int j = 0; j < num_HMC; j++)
             {
                 memcpy(variables_init, variables, N * sizeof(double));
@@ -580,14 +588,15 @@ void hmc(
                 // bias_old = bias_potential(CV_point, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index);
 
                 logp_old = capped_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
-                                                  c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy, gamma, CV_point, startbias, endbias, cap_energy_scale); //+
-                                                                                                                                                                                                                                                                                                               //    bias_potential(CV_point, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index);
+                                                  c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy_bottom, cap_energy_top, gamma, CV_point, startbias, endbias, cap_energy_scale); //+
+                                                                                                                                                                                                                                                                                                                                      //    bias_potential(CV_point, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index);
+                energy_old = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
 
                 // printf("logp %f, chain %d\n", logp_old, i);
                 // Compute gradient at old state
                 grad_capped_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
                                             num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
-                                            D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy, gamma, gradient, CV_point, startbias, endbias, cap_energy_scale);
+                                            D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy_bottom, cap_energy_top, gamma, gradient, CV_point, startbias, endbias, cap_energy_scale);
                 // grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, bias_gradient);
 
                 // Initial half step for momentum
@@ -620,7 +629,7 @@ void hmc(
 
                     grad_capped_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
                                                 num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
-                                                D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy, gamma, gradient, CV_point, startbias, endbias, cap_energy_scale);
+                                                D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy_bottom, cap_energy_top, gamma, gradient, CV_point, startbias, endbias, cap_energy_scale);
 
                     // grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, bias_gradient);
 
@@ -638,8 +647,9 @@ void hmc(
                 }
                 // bias_new = bias_potential(CV_point, num_lambda, gaussian_centers, bias_sigma, bias_sigma_2, delta_F, start_index, end_index);
                 logp_new = capped_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
-                                                  c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy, gamma, CV_point, startbias, endbias, cap_energy_scale); // +
-                                                                                                                                                                                                                                                                                                               //    bias_new;
+                                                  c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, cap_energy_bottom, cap_energy_top, gamma, CV_point, startbias, endbias, cap_energy_scale); // +
+                                                                                                                                                                                                                                                                                                                                      //    bias_new;
+                energy_new = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
 
                 kinetic_new = 0;
                 kinetic_old = 0;
@@ -676,6 +686,7 @@ void hmc(
                     // if (end_index == 0)
                     // end_index = 1;
                     // bias_new = bias_old;
+                    energy_new = energy_old;
                     expected_ages(N, delta_c, cs, theta, num_c14_depths, c14_depths, variables, c14_depth_indices, c14_expected_ages);
                     expected_ages(N, delta_c, cs, theta, num_D18O_depths, D18O_depths, variables, D18O_depth_indices, D18O_expected_ages);
                 }
@@ -685,7 +696,7 @@ void hmc(
                 samples_out[i * num_samples * N + l * N + m] = variables[m];
             }
             energy_out[i * num_samples + l] = logp_new;
-            // bias_out[i * num_samples + l] = bias_new;
+            bias_out[i * num_samples + l] = logp_new - energy_new;
 
             // delta_F_denominator_sum += exp(bias_new);
             // for (int i = 0; i < num_lambda; i++)

@@ -115,16 +115,16 @@ def get_hmc_config(find_min = False):
     dc = H / N
     cs = np.linspace(0, H, N + 1)
     dt = 0.0025
-    nsamples = 1000
+    nsamples = 1000000
     cap_energy_scaling = 0.05
-    cutout = 100
+    cutout = 10
     ndt = 10
     nHMC = 10
     nchains = 4
     pidx = 45
     a = 1.5
     b = 0.21
-    dflim = 20
+    dflim = 5
     startbias = 1250 # Todo: try to find out when and why it goes unstable if i increase delta F and think about what happens if i do, i guess I allow to go to less likeli regions, which is good for finding them but not good for uniform sampling.
     endbias = 1550
     sigma = 0.4
@@ -133,9 +133,9 @@ def get_hmc_config(find_min = False):
     gamma = 2
 
     # For find_min_energy
-    num_local_sp = 1000
-    max_iter = 10000
-    stepsize = 0.0001
+    num_local_sp = 1
+    max_iter = 100000
+    stepsize = 0.00001
     grad_lim = 1e-3
 
     if not find_min:
@@ -164,6 +164,11 @@ def get_hmc_config(find_min = False):
         }
     else:
         config = {
+            "cs": cs,
+            "dc": dc,
+            "a": a,
+            "b": b,
+            "nch": nchains,
             "N" : N,
             "H" : H, 
             "nlsp" : num_local_sp,

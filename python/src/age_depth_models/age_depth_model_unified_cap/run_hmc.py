@@ -143,30 +143,30 @@ def main():
     print(energy_values)
     
     bias_values = np.ctypeslib.as_array(bias_out)
-    print(bias_values)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
+    print(bias_values)
     np.save(f"../../../../output/age_depth_unified_cap/bias_{config_str}.npy", bias_values)
 
-    # print("Resampling\n")
-    # resampled_samples = []
-    # cutout = config["co"]
+    print("Resampling\n")
+    resampled_samples = []
+    cutout = config["co"]
 
-    # weights = np.exp(bias_values)
-    # for i in range(config["nch"]):
-    #     weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
-    #     indices = np.random.choice(
-    #         np.arange(cutout, len(weights_i) + cutout),
-    #         size=int(len(weights_i)),
-    #         replace=True,
-    #         p=weights_i,
-    #     )
-    #     print(f"Chain {i} done resampling")
-    #     resampled_samples.append(samples[i, indices, :])
+    weights = np.exp(bias_values)
+    for i in range(config["nch"]):
+        weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
+        indices = np.random.choice(
+            np.arange(cutout, len(weights_i) + cutout),
+            size=int(len(weights_i)),
+            replace=True,
+            p=weights_i,
+        )
+        print(f"Chain {i} done resampling")
+        resampled_samples.append(samples[i, indices, :])
             
 
-    # resampled_samples = np.array(resampled_samples)
+    resampled_samples = np.array(resampled_samples)
 
-    # np.save(f"../../../../output/age_depth_unified_cap/resamp_{config_str}.npy", resampled_samples)
+    np.save(f"../../../../output/age_depth_unified_cap/resamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":
