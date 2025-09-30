@@ -5,7 +5,7 @@ from define_data_and_variables import get_data, get_hmc_config
 
 
 def define_c_types(lib):
-    lib.find_min_energy.argtypes = [
+    lib.adams.argtypes = [
         ctypes.c_int,  # N
         ctypes.c_double,  # delta_c
         ctypes.POINTER(ctypes.c_double),  # cs
@@ -30,20 +30,19 @@ def define_c_types(lib):
         ctypes.c_double,  # grad_lim
         ctypes.POINTER(ctypes.c_double),  # samples_out
     ]
-    lib.find_min_energy.restype = None
+    lib.adams.restype = None
     return lib
 
 
 def main():
     data = get_data()
-    config_find_min, config_str_find_min = get_hmc_config(True)
-    config, config_str = get_hmc_config()
+    config, config_str = get_hmc_config(True)
 
     os.add_dll_directory("C:/msys64/ucrt64/bin")
-    lib = ctypes.CDLL("./hmc.dll")
+    lib = ctypes.CDLL("./adams.dll")
     lib = define_c_types(lib)
 
-    cs = np.ascontiguousarray(config_find_min["cs"], dtype=np.float64)
+    cs = np.ascontiguousarray(config["cs"], dtype=np.float64)
 
     c14_ages = np.ascontiguousarray(data["c14_ages"], dtype=np.float64)
     c14_depths = np.ascontiguousarray(data["c14_depths"], dtype=np.float64)
@@ -58,17 +57,17 @@ def main():
     )
 
     # Outputs
-    Eout = (ctypes.c_double * config_find_min["nlsp"])() 
-    len_samples = config_find_min["nlsp"] * config_find_min["N"]
+    Eout = (ctypes.c_double * config["nlsp"])() 
+    len_samples = config["nlsp"] * config["N"]
     samples_out = (ctypes.c_double * len_samples)()
 
     # Call the C function
-    lib.find_min_energy(
-        ctypes.c_int(config_find_min["N"]),
-        ctypes.c_double(config_find_min["dc"]),
+    lib.adams(
+        ctypes.c_int(config["N"]),
+        ctypes.c_double(config["dc"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        ctypes.c_double(config_find_min["a"]),
-        ctypes.c_double(config_find_min["b"]),
+        ctypes.c_double(config["a"]),
+        ctypes.c_double(config["b"]),
         ctypes.c_double(data["theta"]),
         ctypes.c_int(len(c14_depths)),
         ctypes.c_int(len(D18O_depths)),
@@ -81,27 +80,23 @@ def main():
         D18O_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        ctypes.c_int(config_find_min["nlsp"]),
-        ctypes.c_int(config_find_min["mi"]),
-        ctypes.c_double(config_find_min["dt"]),
+        ctypes.c_int(config["nlsp"]),
+        ctypes.c_int(config["mi"]),
+        ctypes.c_double(config["dt"]),
         Eout,
-        ctypes.c_double(config_find_min["gl"]),
+        ctypes.c_double(config["gl"]),
         samples_out,
     )
 
     # Convert outputs to numpy
     energies = np.ctypeslib.as_array(Eout)
-    samples = np.ctypeslib.as_array(samples_out).reshape(config_find_min["nlsp"], config_find_min["N"])
+    samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
 
-    idx = np.argsort(energies)
-    samples = samples[idx,:]
-    energies = energies[idx]
+    np.save(f"../../../../output/age_depth_unf_tb/Emin_{config_str}.npy", energies)
+    np.save(f"../../../../output/age_depth_unf_tb/samples_min_{config_str}.npy", samples)
 
-    np.save(f"../../../../output/age_depth_unf_tb/Emin_{config_str_find_min}.npy", energies)
-    np.save(f"../../../../output/age_depth_unf_tb/samples_min_{config_str_find_min}.npy", samples)
 
-    print("Lowest energies:", energies)
-    print("Corresponding samples:", samples)
+    
 
 
 if __name__ == "__main__":

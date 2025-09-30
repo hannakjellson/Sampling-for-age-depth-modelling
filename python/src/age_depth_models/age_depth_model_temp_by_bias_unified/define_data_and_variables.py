@@ -109,84 +109,60 @@ def get_data():
     return data
 
 
-def get_hmc_config(find_min = False):
+def get_hmc_config(find_min = False, bias = "", cap = False, temp = False):
+    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl"]
+    config=dict.fromkeys(keys)
     if not find_min:
-        N = 50 # 50
-        H = 100 # 100
-        dc = H / N
-        cs = np.linspace(0, H, N + 1)
-        dt = 0.003
-        nsamples = 100000
-        cutout = 1000
-        ndt = 10
-        nHMC = 10
-        nchains = 5
-        pidx = 45
-        a = 1.5
-        b = 0.21
-        dflim = 10
-        startbias = 1250
-        endbias = 1550
-        sigma = 0.4
-        nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
-        dist = 40
-        gamma = 1
-        config = {
-            "N": N,
-            "H": H,
-            "dc": dc,
-            "cs": cs,
-            "dt": dt,
-            "ndt": ndt,
-            "nHMC": nHMC,
-            "ns": nsamples,
-            "nch": nchains,
-            "nl": nlambda, 
-            "pidx": pidx,
-            "sig": sigma,
-            "a": a,
-            "b": b,
-            "co" : cutout,
-            "dflim" : dflim,
-            "sb" : startbias,
-            "eb" : endbias,
-            "d" : dist,
-            "g" : gamma,
-        }
-    else:
-        N = 50 # 50
-        H = 100 # 100
-        dc = H / N
-        cs = np.linspace(0, H, N + 1)
-        nchains = 12
-        a = 1.5
-        b = 0.21
-        dflim = 10
-        startbias = 1250
-        endbias = 1550
-        sigma = 0.4
-        nlambda = (int)(1 + ((endbias - startbias) / (sigma)))
-        dist = 40
-        gamma = 5
-
-        # For find_min_energy
-        num_local_sp = 1000
-        max_iter = 10000
-        stepsize = 0.0001
-        grad_lim = 1e-3
-        config = {
-            "N" : N,
-            "H" : H, 
-            "dc": dc,
-            "cs": cs,
-            "a": a,
-            "b": b,
-            "nch": nchains,
-            "nlsp" : num_local_sp,
-            "mi" : max_iter,
-            "dt" : stepsize,
-            "gl" : grad_lim,
-        }
+        config["N"] = 50                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment depth
+        config["dc"] = config["H"] / config["N"]                                              # Segment depth
+        config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
+        config["dt"] = 0.0025                                                                 # Step size
+        config["ns"] = 1000                                                                   # Number of samples
+        config["co"] = 10                                                                     # Cutout
+        config["ndt"] = 10                                                                    # Number of Leapfrog steps
+        config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
+        config["nch"] = 5                                                                     # Number of chains
+        config["a"] = 1.5                                                                     # Gamma prior shape
+        config["b"] = 0.21                                                                    # Gamma prior rate
+                
+        if cap:                   
+            config["ces"] = 0.1                                                               # Cap energy scaling
+            config["cw"] = 100                                                                # Cap width
+        if bias !="":                     
+            config["s"] = 0.4                                                                 # Bias sigma
+            config["dE"] = 50                                                                 # Max bias / Approximate size of valleys
+                
+            if bias !="":                      
+                if bias == "unified":                     
+                    config["d"] = 40                                                          # Nbr of sigmas to include when computing bias and bias gradient
+                    config["sb"] = 1250                                                       # Starting value for umbrella bias
+                    config["eb"] = 1550                                                       # End value for umbrella bias 
+                    config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"]))) # Number of umbrellas in each CV direction
+                
+                if bias == "rethinking":
+                    config["g"] = 40                                                          # Scaling parameter
+                    config["thr"] = config["s"] / 2                                           # Threshold for merging
+                            
+            if temp and bias == "unified":                      
+                config["sbt"] = 1                                                             # Starting value for temp bias
+                config["ebt"] = 100                                                           # End value for temp bias
+                config["nt"] = 10                                                             # Number of temperatures
+    else:                     
+        config["N"] = 50                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment height
+        config["dc"] = config["H"] / config["N"]                                              # Segment depth
+        config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
+        config["nch"] = 12                                                                    # Number of chains
+        config["a"] = 1.5                                                                     # Gamma prior shape
+        config["b"] = 0.21                                                                    # Gamma prior rate
+                
+        # For find_min_energy                     
+        config["nlsp"] = 24                                                                   # Number of starting points
+        config["mi"] = 1000                                                                   # Maximum number of iterations
+        config["dt"] = 0.0001                                                                 # Stepsize
+        config["gl"] = 1e-3                                                                   # Gradient limit
+                        
     config_str = "_".join(
     f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
     for k, v in config.items()
