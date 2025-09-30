@@ -463,8 +463,11 @@ void hmc(
 
             if (unified || rethinking)
             {
-                // printf("saving bias %f\n", bias_new);
                 bias_out[i * num_samples + l] = (cap) ? bias_new + energy_new - energy_new_orig : bias_new;
+            }
+            else if (cap)
+            {
+                bias_out[i * num_samples + l] = energy_new - energy_new_orig;
             }
 
             if (unified)
