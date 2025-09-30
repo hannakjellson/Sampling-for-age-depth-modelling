@@ -53,7 +53,6 @@ void hmc(
     if (temp_bias)
     {
         num_lambda = umbrella_bias ? num_lambda : 1;
-        double temp0 = 0.0;
         double temp_center;
         double factor = 0;
         betas = malloc(num_temps * sizeof(double));
@@ -61,11 +60,10 @@ void hmc(
         {
             factor = (num_temps - 1 > 0) ? (double)i / (num_temps - 1) : 0.0;
             temp_center = startbias_temp + ((endbias_temp - startbias_temp) * factor);
-            temp0 += temp_center;
             betas[i] = 1 / temp_center;
+            beta0 += betas[i];
         }
-        temp0 /= num_temps;
-        beta0 = 1 / temp0;
+        beta0 /= num_temps;
     }
 
     int c14_depth_indices[num_c14_depths];
@@ -188,6 +186,7 @@ void hmc(
         {
             energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                      c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
+
             if (cap)
             {
                 double cap_energy = energy > cap_energy_top ? cap_energy_top : cap_energy_bottom;
@@ -196,9 +195,15 @@ void hmc(
                     energy = cap_energy + ((energy - cap_energy) * ((1 - cap_energy_scale) / (1 + ((energy - cap_energy) * (energy - cap_energy))) + cap_energy_scale));
                 }
             }
+
+            if (!umbrella_bias)
+            {
+                start_index = 0;
+                end_index = 1;
+            }
         }
 
-        if (umbrella_bias || temp_bias)
+        if (unified)
         {
             delta_F_denominator_sum = 1.0;
             double umbrella_factor;
@@ -263,7 +268,7 @@ void hmc(
                 }
 
                 CV_point_init = CV_point;
-                if (umbrella_bias || temp_bias)
+                if (unified)
                 {
                     bias_old = bias_potential(CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias);
                 }
@@ -294,7 +299,9 @@ void hmc(
                 }
 
                 if (unified)
+                {
                     grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                }
 
                 if (rethinking)
                     grad_bias_r(N, delta_c, problem_index, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
@@ -362,8 +369,10 @@ void hmc(
                             }
                         }
                     }
-                    if (umbrella_bias || temp_bias)
+                    if (unified)
+                    {
                         grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                    }
 
                     if (rethinking)
                         grad_bias_r(N, delta_c, problem_index, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);

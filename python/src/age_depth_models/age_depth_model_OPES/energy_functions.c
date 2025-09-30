@@ -212,8 +212,8 @@ void grad_bias(int N, double delta_c, int problem_index, double CV_point, double
 
     for (int i = start_index; i < end_index; i++)
     {
-        gaussian_diff = (CV_point - gaussian_centers[i]);
-        gaussian_diff_2 = gaussian_diff * gaussian_diff;
+        gaussian_diff = umbrella ? (CV_point - gaussian_centers[i]) : 0;
+        gaussian_diff_2 = umbrella ? gaussian_diff * gaussian_diff : 0;
         umbrella_factor = umbrella ? exp(-gaussian_diff_2 / (2 * sigma_2)) : 1;
         umbrella_term = umbrella ? gaussian_diff / sigma_2 : 0;
         for (int j = 0; j < num_temps; j++)
@@ -248,8 +248,8 @@ void update_delta_F(double CV_point, int num_lambda, int num_temps, double sigma
     double temp_factor;
     for (int lambda_index = 0; lambda_index < num_lambda; lambda_index++)
     {
-        gaussian_diff = (CV_point - gaussian_centers[lambda_index]);
-        gaussian_diff_2 = gaussian_diff * gaussian_diff;
+        gaussian_diff = umbrella ? (CV_point - gaussian_centers[lambda_index]) : 0;
+        gaussian_diff_2 = umbrella ? gaussian_diff * gaussian_diff : 0;
         umbrella_factor = umbrella ? exp(-gaussian_diff_2 / (2 * sigma_2)) : 1;
         for (int beta_index = 0; beta_index < num_temps; beta_index++)
         {
