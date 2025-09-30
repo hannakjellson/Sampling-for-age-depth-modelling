@@ -85,8 +85,8 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    energies = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/Emin_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
-    sp = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/samples_min_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
+    energies = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/Emin_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
+    sp = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/samples_min_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
     idx = np.argsort(energies)
     sp = sp[idx, :]
     energies = energies[idx]
@@ -145,15 +145,15 @@ def main():
 
     samples = np.ctypeslib.as_array(samples_out)
     samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/samples_{config_str}.npy", samples)
+    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/samples_{config_str}.npy", samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/energy_{config_str}.npy", energy_values)
+    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/energy_{config_str}.npy", energy_values)
     
     bias_values = np.ctypeslib.as_array(bias_out)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/bias_{config_str}.npy", bias_values)
+    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/bias_{config_str}.npy", bias_values)
 
     print("Resampling\n")
     resampled_samples = []
@@ -174,7 +174,7 @@ def main():
 
     resampled_samples = np.array(resampled_samples)
 
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_unf_tb/resamp_{config_str}.npy", resampled_samples)
+    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/resamp_{config_str}.npy", resampled_samples)
 
 
 if __name__ == "__main__":

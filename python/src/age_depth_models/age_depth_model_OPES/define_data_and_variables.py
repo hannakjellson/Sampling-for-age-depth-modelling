@@ -118,7 +118,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False):
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["dt"] = 0.0025                                                                 # Step size
-        config["ns"] = 1000                                                                   # Number of samples
+        config["ns"] = 10000                                                                  # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling

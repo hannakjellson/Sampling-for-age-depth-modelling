@@ -37,10 +37,6 @@ double bias_potential_r(double CV_point, double *bias_centers, double *bias_heig
 
 void grad_bias_r(int N, double delta_c, int problem_index, double CV_point, double *variables, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights, double Z, double dE, double *gradient);
 
-void new_kernel(double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count, int index, bool right);
-
-void merge_kernels(int index, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double *sum_squared_weights, int *bias_count, double distance_threshold);
-
 void deposit_gaussian(double CV_point, double width, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double current_weight, double *sum_squared_weights, int *bias_count, double distance_threshold, int max_bias);
 
 double compute_Zn(double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights);
