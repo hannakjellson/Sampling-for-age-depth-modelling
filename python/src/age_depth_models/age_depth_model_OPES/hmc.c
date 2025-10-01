@@ -59,7 +59,7 @@ void hmc(
         for (int i = 0; i < num_temps; i++)
         {
             factor = (num_temps - 1 > 0) ? (double)i / (num_temps - 1) : 0.0;
-            temp_center = startbias_temp + ((endbias_temp - startbias_temp) * factor);
+            temp_center = startbias_temp * pow((endbias_temp / startbias_temp), (i / (num_temps - 1)));
             betas[i] = 1 / temp_center;
             beta0 += betas[i];
         }
@@ -240,6 +240,7 @@ void hmc(
             if (isnan(variables[0]))
             {
                 printf("Variables are nan, aborting");
+                printf("%d\n", l);
                 exit(EXIT_FAILURE);
             }
             if (l % 100 == 0)
