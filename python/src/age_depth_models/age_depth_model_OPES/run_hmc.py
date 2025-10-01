@@ -59,7 +59,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = True, temp = True)
+    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = True, temp = True, umbrella = False)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
@@ -106,7 +106,7 @@ def main():
         ctypes.c_int(config["nch"]),
         ctypes.c_int(config["ns"]),
         ctypes.c_int(config["nl"] if type(config["nl"]) == int else -1), # if its nan its intepreted as a float and yields error
-        ctypes.c_int(config["nt"] if type(config["nl"]) == int else -1),
+        ctypes.c_int(config["nt"] if type(config["nt"]) == int else -1),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
