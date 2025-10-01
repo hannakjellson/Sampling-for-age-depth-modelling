@@ -21,7 +21,7 @@ void hmc(
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double dE, double startbias, double endbias,
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
-    double cap_width, const double *cs, const double *sp, const double *sp_energies, const double *c14_ages, const double *c14_depths,
+    double cap_width, const double *cs, const double *pc1, const double *sp, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out)
 {
@@ -33,13 +33,11 @@ void hmc(
     bool rethinking = !isnan(distance_threshold);
     bool cap = !(isnan(cap_energy_scale));
 
-    double problem_index;
     double bias_sigma_2;
     double *gaussian_centers = NULL;
     if (umbrella_bias || rethinking)
     {
         num_temps = temp_bias ? num_temps : 1;
-        problem_index = 45;
         bias_sigma_2 = bias_sigma * bias_sigma;
         gaussian_centers = malloc(num_lambda * sizeof(double));
         for (int i = 0; i < num_lambda; i++)
@@ -164,7 +162,7 @@ void hmc(
 
         if (umbrella_bias || rethinking)
         {
-            CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
+            CV_point = get_CV_point(N, variables, pc1);
             if (umbrella_bias)
             {
                 CV_point_plus_dist_sigma = CV_point + bias_distance_count * bias_sigma;
@@ -301,11 +299,11 @@ void hmc(
 
                 if (unified)
                 {
-                    grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                    grad_bias(N, delta_c, pc1, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                 }
 
                 if (rethinking)
-                    grad_bias_r(N, delta_c, problem_index, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
+                    grad_bias_r(N, delta_c, pc1, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
                 // Initial half step for momentum
                 for (int n = 0; n < N; n++)
                 {
@@ -323,7 +321,7 @@ void hmc(
 
                     if (umbrella_bias || rethinking)
                     {
-                        CV_point = get_CV_point(N, theta, variables, problem_index, delta_c);
+                        CV_point = get_CV_point(N, variables, pc1);
                         if (umbrella_bias)
                         {
                             CV_point_plus_dist_sigma = CV_point + bias_distance_count * bias_sigma;
@@ -372,11 +370,11 @@ void hmc(
                     }
                     if (unified)
                     {
-                        grad_bias(N, delta_c, problem_index, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                        grad_bias(N, delta_c, pc1, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                     }
 
                     if (rethinking)
-                        grad_bias_r(N, delta_c, problem_index, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
+                        grad_bias_r(N, delta_c, pc1, CV_point, variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
 
                     if (k != num_dt - 1)
                     {

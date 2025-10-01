@@ -37,6 +37,7 @@ def define_c_types(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # cs
+        ctypes.POINTER(ctypes.c_double),  # pc1
         ctypes.POINTER(ctypes.c_double),  # sp
         ctypes.POINTER(ctypes.c_double),  # sp_energies
         ctypes.POINTER(ctypes.c_double),  # c14_ages
@@ -59,7 +60,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = True, temp = True, umbrella = False)
+    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = False, umbrella = True)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
@@ -87,6 +88,21 @@ def main():
 
     energies = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/Emin_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
     sp = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/samples_min_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
+    
+    sp_mean= np.mean(sp, axis = 0)
+    sp_centered = sp-sp_mean
+    cov = np.cov(sp_centered, rowvar=False)
+    eigenvalues, eigenvectors = np.linalg.eigh(cov)
+
+    # Eigenvalues and eigenvectors
+    idx = np.argsort(eigenvalues)[::-1]
+    eigenvalues = eigenvalues[idx]
+    eigenvectors = eigenvectors[:, idx]
+
+    pc1 = eigenvectors[:, 0]
+    pc1 = np.ascontiguousarray(pc1)
+    
+    # Starting points and energies
     idx = np.argsort(energies)
     sp = sp[idx, :]
     energies = energies[idx]
@@ -128,6 +144,7 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        pc1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp_energies.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         c14_ages.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

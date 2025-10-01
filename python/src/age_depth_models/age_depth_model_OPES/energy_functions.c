@@ -161,12 +161,12 @@ void grad_energy_function(
     }
 }
 
-double get_CV_point(int N, double theta, double variables[N], int problem_index, double delta_c)
+double get_CV_point(int N, double variables[N], double pc1[N])
 {
-    double sum = theta;
-    for (int i = 0; i < problem_index; i++)
+    double sum = 0;
+    for (int i = 0; i < N; i++)
     {
-        sum -= variables[i] * delta_c;
+        sum += variables[i] * pc1[i];
     }
     return sum;
 }
@@ -190,7 +190,7 @@ double bias_potential(double CV_point, int num_lambda, int num_temps, double gau
     return V;
 }
 
-void grad_bias(int N, double delta_c, int problem_index, double CV_point, double variables[N], int num_lambda, int num_temps, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double gradient[N], double sigma, double sigma_2, double delta_F[num_lambda * num_temps], int start_index, int end_index, bool umbrella, bool temp, double bias_gradient[N])
+void grad_bias(int N, double delta_c, double pc1[N], double CV_point, double variables[N], int num_lambda, int num_temps, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double gradient[N], double sigma, double sigma_2, double delta_F[num_lambda * num_temps], int start_index, int end_index, bool umbrella, bool temp, double bias_gradient[N])
 {
     // Derivative of the bias with respect to log(sedimentation_rates)
     double sum_for_dV[N];
@@ -206,7 +206,7 @@ void grad_bias(int N, double delta_c, int problem_index, double CV_point, double
 
     for (int i = 0; i < N; i++)
     {
-        dsdx[i] = (i < problem_index) ? -variables[i] * delta_c : 0;
+        dsdx[i] = variables[i] * pc1[i];
         sum_for_dV[i] = 0;
     }
 
@@ -370,7 +370,7 @@ double bias_potential_r(double CV_point, double *bias_centers, double *bias_heig
     return V;
 }
 
-void grad_bias_r(int N, double delta_c, int problem_index, double CV_point, double variables[N], double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights, double Z, double dE, double gradient[N])
+void grad_bias_r(int N, double delta_c, double pc1[N], double CV_point, double variables[N], double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights, double Z, double dE, double gradient[N])
 {
     double probability_estimate = get_probability_estimate(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
     double probability_estimate_grad = get_probability_estimate_gradient(CV_point, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
@@ -378,7 +378,7 @@ void grad_bias_r(int N, double delta_c, int problem_index, double CV_point, doub
     double dV = (1.0 - (1.0 / gamma)) * probability_estimate_grad / (Z * ((probability_estimate / Z) + epsilon));
     for (int i = 0; i < N; i++)
     {
-        gradient[i] = (i < problem_index) ? dV * variables[i] * (-delta_c) : 0;
+        gradient[i] = dV * variables[i] * pc1[i];
     }
 }
 
