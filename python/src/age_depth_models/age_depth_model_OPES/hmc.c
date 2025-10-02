@@ -59,9 +59,8 @@ void hmc(
             factor = (num_temps - 1 > 0) ? (double)i / (num_temps - 1) : 0.0;
             temp_center = startbias_temp * pow((endbias_temp / startbias_temp), (i / (num_temps - 1)));
             betas[i] = 1 / temp_center;
-            beta0 += betas[i];
         }
-        beta0 /= num_temps;
+        beta0 = startbias_temp; // Should be one
     }
 
     int c14_depth_indices[num_c14_depths];
