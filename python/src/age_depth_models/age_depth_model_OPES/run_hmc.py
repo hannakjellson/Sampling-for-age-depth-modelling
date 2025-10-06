@@ -16,6 +16,7 @@ def define_c_types(lib):
         ctypes.c_int,  # nsamples
         ctypes.c_int,  # nlambda
         ctypes.c_int,  # ntemp
+        ctypes.c_int,  # npc
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
@@ -37,8 +38,9 @@ def define_c_types(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # cs
-        ctypes.POINTER(ctypes.c_double),  # pc1
+        ctypes.POINTER(ctypes.c_double),  # pcs
         ctypes.POINTER(ctypes.c_double),  # sp
+        ctypes.POINTER(ctypes.c_double),  # sp_mean
         ctypes.POINTER(ctypes.c_double),  # sp_energies
         ctypes.POINTER(ctypes.c_double),  # c14_ages
         ctypes.POINTER(ctypes.c_double),  # c14_depths
@@ -51,6 +53,7 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
+        ctypes.POINTER(ctypes.c_double),  # deltaF_out
     ]
 
     lib.hmc.restype = None
@@ -99,8 +102,8 @@ def main():
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
 
-    pc1 = eigenvectors[:, 0]
-    pc1 = np.ascontiguousarray(pc1)
+    pcs = eigenvectors[:, :config["npc"]]
+    pcs = np.ascontiguousarray(pcs.T)
     
     # Starting points and energies
     idx = np.argsort(energies)
@@ -111,9 +114,12 @@ def main():
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
+    factor = config["nl"] ** config["npc"] if not np.isnan(config["npc"]) else 1
+    total_times_num_lambda = int(total * factor * config["nt"] if not np.isnan(config["nt"]) else total * factor)
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
+    deltaF_out = (ctypes.c_double * total_times_num_lambda)()
 
     lib.hmc(
         ctypes.c_int(config["N"]),
@@ -123,6 +129,7 @@ def main():
         ctypes.c_int(config["ns"]),
         ctypes.c_int(config["nl"] if type(config["nl"]) == int else -1), # if its nan its intepreted as a float and yields error
         ctypes.c_int(config["nt"] if type(config["nt"]) == int else -1),
+        ctypes.c_int(config["npc"]),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -144,8 +151,9 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        pc1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        sp_mean.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp_energies.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         c14_ages.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         c14_depths.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -158,6 +166,7 @@ def main():
         samples_out,
         energy_out,
         bias_out,
+        deltaF_out,
     )
 
     samples = np.ctypeslib.as_array(samples_out)
@@ -171,6 +180,14 @@ def main():
     bias_values = np.ctypeslib.as_array(bias_out)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
     np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/bias_{config_str}.npy", bias_values)
+
+    deltaF_values = np.ctypeslib.as_array(deltaF_out)
+    dim1 = config["nl"] if not np.isnan(config["nl"]) else 1
+    dim2 = config["nl"] if config["npc"] == 2 else 1
+    dim3 = config["nt"] if not np.isnan(config["nt"]) else 1
+    deltaF_values = np.reshape(deltaF_values, (config["nch"], config["ns"], dim1, dim2, dim3))
+    print("Saving deltaF")
+    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/deltaF_{config_str}.npy", deltaF_values)
 
     print("Resampling\n")
     resampled_samples = []
