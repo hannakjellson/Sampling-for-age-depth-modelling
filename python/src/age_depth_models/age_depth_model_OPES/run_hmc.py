@@ -63,7 +63,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = False, umbrella = True)
+    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = True, umbrella = True)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
@@ -89,9 +89,10 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    energies = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/Emin_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
-    sp = np.load(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/samples_min_dc2.00_a1.50_b0.21_nch4_N50_H100_nlsp24_mi100000_dt0.00_gl0.00.npy")
+    energies = np.load(f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy")
+    sp = np.load(f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy")
     
+    print(energies)
     sp_mean= np.mean(sp, axis = 0)
     sp_centered = sp-sp_mean
     cov = np.cov(sp_centered, rowvar=False)
@@ -102,20 +103,24 @@ def main():
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
 
-    pcs = eigenvectors[:, :config["npc"]]
-    pcs = np.ascontiguousarray(pcs.T)
+    pcs = eigenvectors[:, :config["npc"]] if not np.isnan(config["npc"]) else eigenvectors[:, 0]
+    pcs = np.ascontiguousarray(pcs.T) if not np.isnan(config["npc"]) else np.ascontiguousarray(eigenvectors[:, 0].T)
     
     # Starting points and energies
-    idx = np.argsort(energies)
+    idx = energies < min(energies) + 30 # might bug if there are not enough starting points.
     sp = sp[idx, :]
     energies = energies[idx]
+    print(energies)
     sp_energies = energies[:config["nch"]]
+    print(sp_energies)
     sp = sp[:config["nch"], :]
+    # print(sp_energies)
+    # print(sp)
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     factor = config["nl"] ** config["npc"] if not np.isnan(config["npc"]) else 1
-    total_times_num_lambda = int(total * factor * config["nt"] if not np.isnan(config["nt"]) else total * factor)
+    total_times_num_lambda = int(config["nch"] * factor * config["nt"] if not np.isnan(config["nt"]) else config["nch"] * factor)
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
@@ -129,7 +134,7 @@ def main():
         ctypes.c_int(config["ns"]),
         ctypes.c_int(config["nl"] if type(config["nl"]) == int else -1), # if its nan its intepreted as a float and yields error
         ctypes.c_int(config["nt"] if type(config["nt"]) == int else -1),
-        ctypes.c_int(config["npc"]),
+        ctypes.c_int(config["npc"] if type(config["npc"]) == int else -1),
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
@@ -185,7 +190,7 @@ def main():
     dim1 = config["nl"] if not np.isnan(config["nl"]) else 1
     dim2 = config["nl"] if config["npc"] == 2 else 1
     dim3 = config["nt"] if not np.isnan(config["nt"]) else 1
-    deltaF_values = np.reshape(deltaF_values, (config["nch"], config["ns"], dim1, dim2, dim3))
+    deltaF_values = np.reshape(deltaF_values, (config["nch"], dim1, dim2, dim3))
     print("Saving deltaF")
     np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/deltaF_{config_str}.npy", deltaF_values)
 

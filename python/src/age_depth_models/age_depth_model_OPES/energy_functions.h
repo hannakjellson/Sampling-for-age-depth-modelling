@@ -22,11 +22,11 @@ void grad_energy_function(
 
 double get_CV_point(int N, double *variables, const double *pc, const double *sp_mean);
 
-double bias_potential(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double *gaussian_centers, double *betas, double beta0, double energy, double sigma, double sigma_2, double *delta_F, int start_index[MAX_NBR_PC], int end_index[MAX_NBR_PC], bool umbrella, bool temp);
+double bias_potential(int num_pcs, double *CV_point, int num_lambda, int num_temps, double *gaussian_centers, double *betas, double beta0, double energy, double sigma, double sigma_2, double *delta_F, int start_index[MAX_NBR_PC], int end_index[MAX_NBR_PC], bool umbrella, bool temp);
 
-void grad_bias(int N, double delta_c, int num_pcs, const double *pcs, double CV_point[num_pcs], double *variables, int num_lambda, int num_temps, double *gaussian_centers, double *betas, double beta0, double energy, double *gradient, double sigma, double sigma_2, double *delta_F, int start_index[MAX_NBR_PC], int end_index[MAX_NBR_PC], bool umbrella, bool temp, double *bias_gradient);
+void grad_bias(int N, double delta_c, int num_pcs, const double *pcs, double *CV_point, double *variables, int num_lambda, int num_temps, double *gaussian_centers, double *betas, double beta0, double energy, double *gradient, double sigma, double sigma_2, double *delta_F, int start_index[MAX_NBR_PC], int end_index[MAX_NBR_PC], bool umbrella, bool temp, double *bias_gradient);
 
-void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double *gaussian_centers, double *betas, double beta0, double energy, double *delta_F_nominator_sum, double delta_F_denominator_sum, double *delta_F, double potential, bool umbrella, bool temp);
+void update_delta_F(int num_pcs, double *CV_point, int num_lambda, int num_temps, double sigma_2, double dE, double *gaussian_centers, double *betas, double beta0, double energy, double *delta_F_nominator_sum, double delta_F_denominator_sum, double *delta_F, double potential, bool umbrella, bool temp);
 
 void stoch_grad_energy_function(
     int N, int num_D18O_indices_stoch, int *D18O_indices_stoch, double delta_c, const double *cs, double a, double b, double theta,

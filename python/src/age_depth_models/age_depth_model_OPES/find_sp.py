@@ -92,8 +92,8 @@ def main():
     energies = np.ctypeslib.as_array(Eout)
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
 
-    np.save(f"../../../../output/age_depth_unf_tb/Emin_{config_str}.npy", energies)
-    np.save(f"../../../../output/age_depth_unf_tb/samples_min_{config_str}.npy", samples)
+    np.save(f"../../../../output/age_depth_OPES/Emin_{config_str}.npy", energies)
+    np.save(f"../../../../output/age_depth_OPES/samples_min_{config_str}.npy", samples)
 
 
     

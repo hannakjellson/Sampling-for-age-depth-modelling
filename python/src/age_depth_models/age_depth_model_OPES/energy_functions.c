@@ -207,7 +207,7 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     double gaussian_diff_2_i;
     double gaussian_diff_j;
     double gaussian_diff_2_j;
-    double dsdx[num_pcs * N];
+    double dsdx[MAX_NBR_PC * N];
     double exp_term = 0;
     double umbrella_factor_i;
     double umbrella_factor;
@@ -219,9 +219,12 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
 
     for (int j = 0; j < N; j++)
     {
-        for (int i = 0; i < num_pcs; i++)
+        if (umbrella)
         {
-            dsdx[i * N + j] = variables[j] * pcs[i * N + j];
+            for (int i = 0; i < num_pcs; i++)
+            {
+                dsdx[i * N + j] = variables[j] * pcs[i * N + j];
+            }
         }
         sum_for_dV[j] = 0;
     }

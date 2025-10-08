@@ -39,7 +39,6 @@ void hmc(
     double *gaussian_centers = NULL;
     if (umbrella_bias || rethinking)
     {
-
         num_temps = temp_bias ? num_temps : 1;
         bias_sigma_2 = bias_sigma * bias_sigma;
         gaussian_centers = malloc(num_lambda * sizeof(double));
@@ -54,6 +53,7 @@ void hmc(
     if (temp_bias)
     {
         num_lambda = umbrella_bias ? num_lambda : 1;
+        num_pcs = umbrella_bias ? num_pcs : 1;
         double temp_center;
         double factor = 0;
         betas = malloc(num_temps * sizeof(double));
@@ -291,19 +291,20 @@ void hmc(
                     }
                 }
 
-                memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
                 if (unified)
                 {
+                    if (!temp_bias)
+                        memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
                     bias_old = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias);
                 }
                 else if (rethinking)
                 {
+                    memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
                     bias_old = bias_potential_r(CV_point[0], bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE);
                 }
                 else
                     bias_old = 0;
                 logp_old = energy_old + bias_old;
-
                 // printf("logp %f, chain %d\n", logp_old, i);
                 // Compute gradient at old state
                 grad_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
@@ -513,16 +514,6 @@ void hmc(
             {
                 delta_F_denominator_sum += exp(bias_new);
                 update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias);
-                for (int j = 0; j < num_lambda; j++)
-                {
-                    for (int k = 0; k < num_lambda_2; k++)
-                    {
-                        for (int m = 0; m < num_temps; m++)
-                        {
-                            deltaF_out[i * num_samples * num_lambda * num_lambda_2 * num_temps + l * num_lambda * num_lambda_2 * num_temps + j * num_lambda_2 * num_temps + k * num_temps + m] = delta_F[j * num_lambda_2 * num_temps + k * num_temps + m];
-                        }
-                    }
-                }
             }
 
             if (rethinking)
@@ -535,6 +526,19 @@ void hmc(
                 deposit_gaussian(CV_point[0], bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[l + 1], &sum_squared_weights, &bias_count, distance_threshold, MAX_BIAS);
                 // printf("center %f\n", bias_centers[1]);
                 Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
+            }
+        }
+        if (unified)
+        {
+            for (int j = 0; j < num_lambda; j++)
+            {
+                for (int k = 0; k < num_lambda_2; k++)
+                {
+                    for (int m = 0; m < num_temps; m++)
+                    {
+                        deltaF_out[i * num_lambda * num_lambda_2 * num_temps + j * num_lambda_2 * num_temps + k * num_temps + m] = delta_F[j * num_lambda_2 * num_temps + k * num_temps + m];
+                    }
+                }
             }
         }
 
