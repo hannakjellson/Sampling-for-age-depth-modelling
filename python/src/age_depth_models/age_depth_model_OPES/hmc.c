@@ -24,10 +24,8 @@ void hmc(
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
     double cap_width, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
-    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, double *deltaF_out)
+    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str)
 {
-
-    // None of them seem to get a bias:(((, the bias is zero, so there is a bug.
     bool umbrella_bias = !(num_lambda == -1);
     bool temp_bias = !(num_temps == -1);
     bool unified = (umbrella_bias || temp_bias);
@@ -66,10 +64,6 @@ void hmc(
         beta0 = 1 / startbias_temp; // Should be one
     }
 
-    if (unified)
-    {
-        num_lambda_2 = (num_pcs == 2) ? num_lambda : 1;
-    }
     int c14_depth_indices[num_c14_depths];
     double inv_c14_var[num_c14_depths];
     for (int i = 0; i < num_c14_depths; i++)
@@ -131,6 +125,22 @@ void hmc(
         double delta_F[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_denominator_sum;
+        FILE *deltaF_out;
+
+        if (unified)
+        {
+            char fname[512];
+            sprintf(fname, "../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin", i, config_str);
+
+            // --- Open file for writing ---
+            deltaF_out = fopen(fname, "wb");
+            if (!deltaF_out)
+            {
+                fprintf(stderr, "Error: could not open %s for writing\n", fname);
+                continue;
+            }
+            num_lambda_2 = (num_pcs == 2) ? num_lambda : 1;
+        }
 
         // Rethinking variables
         double bias_centers[MAX_BIAS];
@@ -513,7 +523,7 @@ void hmc(
             if (unified)
             {
                 delta_F_denominator_sum += exp(bias_new);
-                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias);
+                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias, deltaF_out);
             }
 
             if (rethinking)
@@ -528,21 +538,9 @@ void hmc(
                 Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
             }
         }
-        if (unified)
-        {
-            for (int j = 0; j < num_lambda; j++)
-            {
-                for (int k = 0; k < num_lambda_2; k++)
-                {
-                    for (int m = 0; m < num_temps; m++)
-                    {
-                        deltaF_out[i * num_lambda * num_lambda_2 * num_temps + j * num_lambda_2 * num_temps + k * num_temps + m] = delta_F[j * num_lambda_2 * num_temps + k * num_temps + m];
-                    }
-                }
-            }
-        }
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
+        fclose(deltaF_out);
     }
 }

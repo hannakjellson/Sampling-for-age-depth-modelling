@@ -36,7 +36,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config, config_str = get_hmc_config(True)
+    config, config_str = get_hmc_config(find_min = True)
 
     os.add_dll_directory("C:/msys64/ucrt64/bin")
     lib = ctypes.CDLL("./adams.dll")
