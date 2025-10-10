@@ -75,7 +75,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu26")
+    ) = read_data("dayu06")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -113,12 +113,12 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
     keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc"]
     config=dict.fromkeys(keys)
     if not find_min:
-        config["N"] = 10                                                                      # Number of variables
-        config["H"] = 20                                                                     # Sediment depth
+        config["N"] = 50                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.005                                                                  # Step size
-        config["ns"] = 100000                                                                   # Number of samples
+        config["dt"] = 0.001                                                                  # Step size
+        config["ns"] = 10000                                                                   # Number of samples
         config["co"] = 0                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -152,17 +152,17 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
     else:                     
-        config["N"] = 10                                                                      # Number of variables
-        config["H"] = 20                                                                     # Sediment height
+        config["N"] = 50                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment height
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
                 
         # For find_min_energy                     
-        config["nlsp"] = 100                                                                   # Number of starting points
+        config["nlsp"] = 24                                                                   # Number of starting points
         config["mi"] = 1000000                                                                # Maximum number of iterations
-        config["dt"] = 0.0001                                                                 # Stepsize
+        config["dt"] = 0.00001                                                                # Stepsize
         config["gl"] = 1e-3                                                                   # Gradient limit
                         
     config_str = "_".join(
