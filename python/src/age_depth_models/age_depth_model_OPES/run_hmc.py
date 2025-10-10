@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from define_data_and_variables import get_data, get_hmc_config
 import datetime as datetime
+import platform
 
 
 def define_c_types(lib):
@@ -53,7 +54,7 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
-        ctypes.POINTER(ctypes.c_double),  # deltaF_out
+        ctypes.c_char_p,
     ]
 
     lib.hmc.restype = None
@@ -71,8 +72,12 @@ def main():
 
 
     # Load library depending on OS
-    os.add_dll_directory("C:/msys64/ucrt64/bin")
-    lib = ctypes.CDLL("./hmc.dll")
+    if platform.system() == "Windows":
+        os.add_dll_directory("C:/msys64/ucrt64/bin")
+        lib = ctypes.CDLL("./hmc.dll")
+    else:
+        # Linux / macOS
+        lib = ctypes.CDLL("./hmc.so")
     lib = define_c_types(lib)
 
     cs = np.ascontiguousarray(config["cs"], dtype=np.float64)
@@ -119,12 +124,10 @@ def main():
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
-    factor = config["nl"] ** config["npc"] if not np.isnan(config["npc"]) else 1
-    total_times_num_lambda = int(config["nch"] * factor * config["nt"] if not np.isnan(config["nt"]) else config["nch"] * factor)
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
-    deltaF_out = (ctypes.c_double * total_times_num_lambda)()
+    config_str_input = config_str.encode("utf-8")
 
     lib.hmc(
         ctypes.c_int(config["N"]),
@@ -171,7 +174,7 @@ def main():
         samples_out,
         energy_out,
         bias_out,
-        deltaF_out,
+        config_str_input,
     )
 
     samples = np.ctypeslib.as_array(samples_out)
@@ -185,14 +188,6 @@ def main():
     bias_values = np.ctypeslib.as_array(bias_out)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
     np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/bias_{config_str}.npy", bias_values)
-
-    deltaF_values = np.ctypeslib.as_array(deltaF_out)
-    dim1 = config["nl"] if not np.isnan(config["nl"]) else 1
-    dim2 = config["nl"] if config["npc"] == 2 else 1
-    dim3 = config["nt"] if not np.isnan(config["nt"]) else 1
-    deltaF_values = np.reshape(deltaF_values, (config["nch"], dim1, dim2, dim3))
-    print("Saving deltaF")
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/deltaF_{config_str}.npy", deltaF_values)
 
     print("Resampling\n")
     resampled_samples = []
