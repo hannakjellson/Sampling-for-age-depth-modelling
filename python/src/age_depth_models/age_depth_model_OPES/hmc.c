@@ -127,28 +127,28 @@ void hmc(
         double delta_F[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_denominator_sum;
-        FILE *deltaF_out;
+        // FILE *deltaF_out;
 
         if (unified)
         {
-            char fname[PATH_MAX];
-            char resolved_path[PATH_MAX];
+            // char fname[PATH_MAX];
+            // char resolved_path[PATH_MAX];
 
-            // Get the directory of this source file at compile time
-            char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
-            char *dir = dirname(src_dir);     // get the directory part
+            // // Get the directory of this source file at compile time
+            // char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
+            // char *dir = dirname(src_dir);     // get the directory part
 
-            // Build the relative path
-            snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
-                     dir, i, config_str);
+            // // Build the relative path
+            // snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
+            //          dir, i, config_str);
 
-            // --- Open file for writing ---
-            deltaF_out = fopen(fname, "wb");
-            if (!deltaF_out)
-            {
-                fprintf(stderr, "Error: could not open %s for writing\n", fname);
-                continue;
-            }
+            // // --- Open file for writing ---
+            // deltaF_out = fopen(fname, "wb");
+            // if (!deltaF_out)
+            // {
+            //     fprintf(stderr, "Error: could not open %s for writing\n", fname);
+            //     continue;
+            // }
             num_lambda_2 = (num_pcs == 2) ? num_lambda : 1;
         }
 
@@ -533,7 +533,7 @@ void hmc(
             if (unified)
             {
                 delta_F_denominator_sum += exp(bias_new);
-                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias, deltaF_out);
+                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias); // deltaF_out
             }
 
             if (rethinking)
@@ -551,6 +551,6 @@ void hmc(
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
-        fclose(deltaF_out);
+        // fclose(deltaF_out);
     }
 }
