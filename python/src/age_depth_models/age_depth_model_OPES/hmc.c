@@ -10,6 +10,8 @@
 #include <gsl/gsl_blas.h>
 #include <stdbool.h>
 #include <omp.h>
+#include <libgen.h>
+#include <limits.h>
 #include "energy_functions.h"
 
 #define min(a, b) (((a) <= (b)) ? (a) : (b))
@@ -129,8 +131,16 @@ void hmc(
 
         if (unified)
         {
-            char fname[512];
-            sprintf(fname, "../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin", i, config_str);
+            char fname[PATH_MAX];
+            char resolved_path[PATH_MAX];
+
+            // Get the directory of this source file at compile time
+            char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
+            char *dir = dirname(src_dir);     // get the directory part
+
+            // Build the relative path
+            snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
+                     dir, i, config_str);
 
             // --- Open file for writing ---
             deltaF_out = fopen(fname, "wb");

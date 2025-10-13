@@ -2,6 +2,7 @@ import ctypes
 import numpy as np
 import os
 from define_data_and_variables import get_data, get_hmc_config
+from pathlib import Path
 
 
 def define_c_types(lib):
@@ -92,8 +93,10 @@ def main():
     energies = np.ctypeslib.as_array(Eout)
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
 
-    np.save(f"../../../../output/age_depth_OPES/Emin_{config_str}.npy", energies)
-    np.save(f"../../../../output/age_depth_OPES/samples_min_{config_str}.npy", samples)
+    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"Emin_{config_str}.npy"
+    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"samples_min_{config_str}.npy"
+    np.save(outdir_Emin, energies)
+    np.save(outdir_samples, samples)
 
 
     

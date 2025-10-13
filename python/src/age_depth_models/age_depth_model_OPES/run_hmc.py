@@ -6,6 +6,7 @@ import os
 from define_data_and_variables import get_data, get_hmc_config
 import datetime as datetime
 import platform
+from pathlib import Path
 
 
 def define_c_types(lib):
@@ -70,7 +71,6 @@ def main():
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
     config_find_min = {k: (float("nan") if v is None else v) for k, v in config_find_min.items()}
 
-
     # Load library depending on OS
     if platform.system() == "Windows":
         os.add_dll_directory("C:/msys64/ucrt64/bin")
@@ -94,8 +94,10 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    energies = np.load(f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy")
-    sp = np.load(f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy")
+    energies = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy"
+    energies = np.load(energies)
+    sp = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy"
+    sp = np.load(sp)
     
     print(energies)
     sp_mean= np.mean(sp, axis = 0)
@@ -179,15 +181,18 @@ def main():
 
     samples = np.ctypeslib.as_array(samples_out)
     samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/samples_{config_str}.npy", samples)
+    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"samples_{config_str}.npy"
+    np.save(outdir_samples, samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/energy_{config_str}.npy", energy_values)
+    outdir_energy = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"energy_{config_str}.npy"
+    np.save(outdir_energy, energy_values)
     
     bias_values = np.ctypeslib.as_array(bias_out)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/bias_{config_str}.npy", bias_values)
+    outdir_bias = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"bias_{config_str}.npy"
+    np.save(outdir_bias, bias_values)
 
     print("Resampling\n")
     resampled_samples = []
@@ -207,8 +212,8 @@ def main():
             
 
     resampled_samples = np.array(resampled_samples)
-
-    np.save(f"C:/Users/hanna/Desktop/PhD/Bacon/output/age_depth_OPES/resamp_{config_str}.npy", resampled_samples)
+    outdir_resamp = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"resamp_{config_str}.npy"
+    np.save(outdir_resamp, resampled_samples)
 
 
 if __name__ == "__main__":
