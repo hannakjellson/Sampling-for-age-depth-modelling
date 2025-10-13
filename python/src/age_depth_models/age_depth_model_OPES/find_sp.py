@@ -3,7 +3,7 @@ import numpy as np
 import os
 from define_data_and_variables import get_data, get_hmc_config
 from pathlib import Path
-
+import platform
 
 def define_c_types(lib):
     lib.adams.argtypes = [
@@ -38,9 +38,14 @@ def define_c_types(lib):
 def main():
     data = get_data()
     config, config_str = get_hmc_config(find_min = True)
-
-    os.add_dll_directory("C:/msys64/ucrt64/bin")
-    lib = ctypes.CDLL("./adams.dll")
+    
+    # Load library depending on OS
+    if platform.system() == "Windows":
+        os.add_dll_directory("C:/msys64/ucrt64/bin")
+        lib = ctypes.CDLL("./adams.dll")
+    else:
+        # Linux / macOS
+        lib = ctypes.CDLL("./adams.so")
     lib = define_c_types(lib)
 
     cs = np.ascontiguousarray(config["cs"], dtype=np.float64)

@@ -94,7 +94,7 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    energies = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy"
+    energies = Path(Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy").resolve()
     energies = np.load(energies)
     sp = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy"
     sp = np.load(sp)
