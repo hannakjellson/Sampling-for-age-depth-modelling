@@ -266,7 +266,7 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     }
 }
 
-void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp) // FILE *deltaF_out
+void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp)
 {
     double gaussian_diff_i;
     double gaussian_diff_2_i;
@@ -299,12 +299,6 @@ void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int n
             }
         }
     }
-
-    // size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda2 * num_temps, deltaF_out);
-    // if (written != (size_t)(num_lambda * num_lambda2 * num_temps))
-    // {
-    //     fprintf(stderr, "Error writing data");
-    // }
 }
 
 void stoch_grad_energy_function(

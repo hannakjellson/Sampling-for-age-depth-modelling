@@ -127,28 +127,28 @@ void hmc(
         double delta_F[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_denominator_sum;
-        // FILE *deltaF_out;
+        FILE *deltaF_out;
 
         if (unified)
         {
-            // char fname[PATH_MAX];
-            // char resolved_path[PATH_MAX];
+            char fname[PATH_MAX];
+            char resolved_path[PATH_MAX];
 
-            // // Get the directory of this source file at compile time
-            // char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
-            // char *dir = dirname(src_dir);     // get the directory part
+            // Get the directory of this source file at compile time
+            char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
+            char *dir = dirname(src_dir);     // get the directory part
 
-            // // Build the relative path
-            // snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
-            //          dir, i, config_str);
+            // Build the relative path
+            snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
+                     dir, i, config_str);
 
-            // // --- Open file for writing ---
-            // deltaF_out = fopen(fname, "wb");
-            // if (!deltaF_out)
-            // {
-            //     fprintf(stderr, "Error: could not open %s for writing\n", fname);
-            //     continue;
-            // }
+            // --- Open file for writing ---
+            deltaF_out = fopen(fname, "wb");
+            if (!deltaF_out)
+            {
+                fprintf(stderr, "Error: could not open %s for writing\n", fname);
+                continue;
+            }
             num_lambda_2 = (num_pcs == 2) ? num_lambda : 1;
         }
 
@@ -246,21 +246,20 @@ void hmc(
             double umbrella_factor_i;
             double umbrella_factor;
             double temp_factor;
-            int num_lambda2 = num_pcs == 2 ? num_lambda : 1;
             for (int lambda_index = 0; lambda_index < num_lambda; lambda_index++)
             {
                 umbrella_factor_i = umbrella_bias ? exp(-pow(CV_point[0] - gaussian_centers[lambda_index], 2) / (2 * bias_sigma_2)) : 1;
-                for (int lambda_index2 = 0; lambda_index2 < num_lambda2; lambda_index2++)
+                for (int lambda_index2 = 0; lambda_index2 < num_lambda_2; lambda_index2++)
                 {
                     umbrella_factor = (umbrella_bias && num_pcs == 2) ? umbrella_factor_i * exp(-pow(CV_point[1] - gaussian_centers[lambda_index2], 2) / (2 * bias_sigma_2)) : umbrella_factor_i;
                     for (int temp_index = 0; temp_index < num_temps; temp_index++)
                     {
                         temp_factor = temp_bias ? exp(-(betas[temp_index] - beta0) * energy) : 1;
-                        delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index2 * num_temps + temp_index] = umbrella_factor * temp_factor;
-                        delta_F[lambda_index * num_lambda2 * num_temps + lambda_index2 * num_temps + temp_index] = -log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index2 * num_temps + temp_index] / delta_F_denominator_sum);
-                        if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index2 * num_temps + temp_index] >= dE)
+                        delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = umbrella_factor * temp_factor;
+                        delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = -log(delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] / delta_F_denominator_sum);
+                        if (delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] >= dE)
                         {
-                            delta_F[lambda_index * num_lambda2 * num_temps + lambda_index2 * num_temps + temp_index] = dE;
+                            delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = dE;
                         }
                     }
                 }
@@ -533,7 +532,12 @@ void hmc(
             if (unified)
             {
                 delta_F_denominator_sum += exp(bias_new);
-                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias); // deltaF_out
+                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias);
+                // size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out);
+                // if (written != (size_t)(num_lambda * num_lambda_2 * num_temps))
+                // {
+                //     fprintf(stderr, "Error writing data");
+                // }
             }
 
             if (rethinking)
