@@ -533,11 +533,14 @@ void hmc(
             {
                 delta_F_denominator_sum += exp(bias_new);
                 update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias);
-                // size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out);
-                // if (written != (size_t)(num_lambda * num_lambda_2 * num_temps))
-                // {
-                //     fprintf(stderr, "Error writing data");
-                // }
+                if (l % 10000 == 0)
+                {
+                    size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out);
+                    if (written != (size_t)(num_lambda * num_lambda_2 * num_temps))
+                    {
+                        fprintf(stderr, "Error writing data");
+                    }
+                }
             }
 
             if (rethinking)
@@ -555,6 +558,6 @@ void hmc(
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
-        // fclose(deltaF_out);
+        fclose(deltaF_out);
     }
 }
