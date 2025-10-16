@@ -99,30 +99,28 @@ def main():
     sp = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy"
     sp = np.load(sp)
     
-    print(energies)
-    sp_mean= np.mean(sp, axis = 0)
-    sp_centered = sp-sp_mean
+    energy_idx = np.argsort(energies) # might bug if there are not enough starting points.
+    sp_smallest = sp[energy_idx][:20]
+    sp_mean= np.mean(sp_smallest, axis = 0)
+    sp_centered = sp_smallest-sp_mean
     cov = np.cov(sp_centered, rowvar=False)
     eigenvalues, eigenvectors = np.linalg.eigh(cov)
 
     # Eigenvalues and eigenvectors
-    idx = np.argsort(eigenvalues)[::-1]
-    eigenvalues = eigenvalues[idx]
-    eigenvectors = eigenvectors[:, idx]
+    eig_idx = np.argsort(eigenvalues)[::-1]
+    eigenvalues = eigenvalues[eig_idx]
+    eigenvectors = eigenvectors[:, eig_idx]
 
     pcs = eigenvectors[:, :config["npc"]] if not np.isnan(config["npc"]) else eigenvectors[:, 0]
     pcs = np.ascontiguousarray(pcs.T) if not np.isnan(config["npc"]) else np.ascontiguousarray(eigenvectors[:, 0].T)
     
     # Starting points and energies
-    idx = energies < min(energies) + 30 # might bug if there are not enough starting points.
-    sp = sp[idx, :]
-    energies = energies[idx]
-    print(energies)
+    sp = sp[energy_idx, :]
+    energies = energies[energy_idx]
     sp_energies = energies[:config["nch"]]
-    print(sp_energies)
     sp = sp[:config["nch"], :]
-    # print(sp_energies)
-    # print(sp)
+    print(sp_energies)
+    print(sp)
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]

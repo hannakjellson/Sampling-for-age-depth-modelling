@@ -82,7 +82,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu13A")
+    ) = read_data("dayu07")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -120,12 +120,12 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
     keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc"]
     config=dict.fromkeys(keys)
     if not find_min:
-        config["N"] = 15                                                                      # Number of variables
-        config["H"] = 30                                                                     # Sediment depth
+        config["N"] = 49                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.0002                                                                  # Step size
-        config["ns"] = 1000000                                                                   # Number of samples
+        config["dt"] = 0.005                                                                  # Step size
+        config["ns"] = 10000                                                                   # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -145,35 +145,35 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                 if bias == "unified":  
                     if temp:                      
                         config["sbt"] = 1                                                     # Starting value for temp bias
-                        config["ebt"] = 2                                                    # End value for temp bias
-                        config["nt"] = 10                                                     # Number of temperatures
+                        config["ebt"] = 5                                                    # End value for temp bias
+                        config["nt"] = 5                                                     # Number of temperatures
                     if umbrella:
                         config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
-                        config["sb"] = -20                                                              # Starting value for umbrella bias
-                        config["eb"] = 20                                                               # End value for umbrella bias 
+                        config["sb"] = -10                                                              # Starting value for umbrella bias
+                        config["eb"] = 10                                                               # End value for umbrella bias 
                         config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"]))) # Number of umbrellas in each CV direction
-                        config["npc"] = 1                                                               # Number of collective variables (pcs)
+                        config["npc"] = 2                                                               # Number of collective variables (pcs)
 
                 if bias == "rethinking":
                     config["g"] = 40                                                          # Scaling parameter
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
     else:                     
-        config["N"] = 15                                                                      # Number of variables
-        config["H"] = 30                                                                     # Sediment height
+        config["N"] = 49                                                                      # Number of variables
+        config["H"] = 100                                                                     # Sediment height
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
                 
         # For find_min_energy                     
-        config["nlsp"] = 100                                                                   # Number of starting points
-        config["mi"] = 100000                                                                # Maximum number of iterations
-        config["dt"] = 0.0001                                                                # Stepsize
-        config["gl"] = 1e-3                                                                   # Gradient limit
+        config["nlsp"] = 100                                                                  # Number of starting points
+        config["mi"] = 100000                                                                 # Maximum number of iterations
+        config["dt"] = 0.0001  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
+        config["gl"] = 0.0001  # What i actually ran with: 0.0001                             # Gradient limit
                         
     config_str = "_".join(
-    f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
+    f"{k}{v:.2g}" if isinstance(v, float) else f"{k}{v}" #OBS: use 2g instead of 2f wwhen runnint again!
     for k, v in config.items()
     if isinstance(v, (int, float))
     )   
