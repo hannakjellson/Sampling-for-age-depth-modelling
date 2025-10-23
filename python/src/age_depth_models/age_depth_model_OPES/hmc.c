@@ -66,6 +66,13 @@ void hmc(
         beta0 = 1 / startbias_temp; // Should be one
     }
 
+    if (!unified && !rethinking)
+    {
+        num_lambda = 1;
+        num_pcs = 1;
+        num_temps = 1;
+    }
+
     int c14_depth_indices[num_c14_depths];
     double inv_c14_var[num_c14_depths];
     for (int i = 0; i < num_c14_depths; i++)
@@ -145,6 +152,7 @@ void hmc(
                      dir, i, config_str);
 
             // --- Open file for writing ---
+	    remove(fname);
             deltaF_out = fopen(fname, "wb");
             if (!deltaF_out)
             {
