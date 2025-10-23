@@ -119,8 +119,8 @@ def main():
     energies = energies[energy_idx]
     sp_energies = energies[:config["nch"]]
     sp = sp[:config["nch"], :]
-    print(sp_energies)
-    print(sp)
+    # print(sp_energies)
+    # print(sp)
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]

@@ -127,6 +127,8 @@ void hmc(
         double delta_F[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps];
         double delta_F_denominator_sum;
+        double max_delta_F_denominator_sum_term;
+        double max_delta_F_nominator_sum_term[(int)pow(num_lambda, num_pcs) * num_temps];
         FILE *deltaF_out;
 
         if (unified)
@@ -243,20 +245,22 @@ void hmc(
         if (unified)
         {
             delta_F_denominator_sum = 1.0;
-            double umbrella_factor_i;
-            double umbrella_factor;
-            double temp_factor;
+            max_delta_F_denominator_sum_term = 0;
+            double umbrella_term_i;
+            double umbrella_term_j;
+            double temp_term;
             for (int lambda_index = 0; lambda_index < num_lambda; lambda_index++)
             {
-                umbrella_factor_i = umbrella_bias ? exp(-pow(CV_point[0] - gaussian_centers[lambda_index], 2) / (2 * bias_sigma_2)) : 1;
+                umbrella_term_i = umbrella_bias ? pow(CV_point[0] - gaussian_centers[lambda_index], 2) / (2 * bias_sigma_2) : 0;
                 for (int lambda_index2 = 0; lambda_index2 < num_lambda_2; lambda_index2++)
                 {
-                    umbrella_factor = (umbrella_bias && num_pcs == 2) ? umbrella_factor_i * exp(-pow(CV_point[1] - gaussian_centers[lambda_index2], 2) / (2 * bias_sigma_2)) : umbrella_factor_i;
+                    umbrella_term_j = (umbrella_bias && num_pcs == 2) ? pow(CV_point[1] - gaussian_centers[lambda_index2], 2) / (2 * bias_sigma_2) : 0;
                     for (int temp_index = 0; temp_index < num_temps; temp_index++)
                     {
-                        temp_factor = temp_bias ? exp(-(betas[temp_index] - beta0) * energy) : 1;
-                        delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = umbrella_factor * temp_factor;
-                        delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = -log(delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] / delta_F_denominator_sum);
+                        temp_term = temp_bias ? (betas[temp_index] - beta0) * energy : 0;
+                        max_delta_F_nominator_sum_term[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = -(umbrella_term_i + umbrella_term_j + temp_term);
+                        delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = 1;
+                        delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] - log(delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index]);
                         if (delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] >= dE)
                         {
                             delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = dE;
@@ -531,8 +535,13 @@ void hmc(
 
             if (unified)
             {
-                delta_F_denominator_sum += exp(bias_new);
-                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_new, umbrella_bias, temp_bias);
+                if (bias_new > max_delta_F_denominator_sum_term)
+                {
+                    delta_F_denominator_sum *= exp(max_delta_F_denominator_sum_term - bias_new);
+                    max_delta_F_denominator_sum_term = bias_new;
+                }
+                delta_F_denominator_sum += exp(bias_new - max_delta_F_denominator_sum_term);
+                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, max_delta_F_nominator_sum_term, max_delta_F_denominator_sum_term, delta_F, bias_new, umbrella_bias, temp_bias);
                 if (l % 10000 == 0)
                 {
                     size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out);
@@ -558,6 +567,9 @@ void hmc(
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
-        fclose(deltaF_out);
+        if (unified)
+        {
+            fclose(deltaF_out);
+        }
     }
 }

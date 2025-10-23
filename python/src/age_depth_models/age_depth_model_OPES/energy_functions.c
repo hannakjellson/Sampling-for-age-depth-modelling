@@ -165,6 +165,7 @@ void grad_energy_function(
 
 double get_CV_point(int N, double variables[N], double pc[N], double sp_mean[N])
 {
+
     double sum = 0;
     for (int i = 0; i < N; i++)
     {
@@ -176,25 +177,35 @@ double get_CV_point(int N, double variables[N], double pc[N], double sp_mean[N])
 double bias_potential(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double sigma, double sigma_2, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], int start_index[MAX_NBR_PC], int end_index[MAX_NBR_PC], bool umbrella, bool temp)
 {
     double sum_for_V = 0;
-    double umbrella_factor_i;
-    double umbrella_factor;
-    double temp_factor;
+    double umbrella_term_i;
+    double umbrella_term_j;
+    double temp_term;
+    double max_term = DBL_MIN;
+    double total_term;
     int num_lambda2 = (num_pcs == 2) ? num_lambda : 1;
 
     for (int i = start_index[0]; i < end_index[0]; i++)
     {
-        umbrella_factor_i = umbrella ? exp(-(pow(CV_point[0] - gaussian_centers[i], 2) / (2 * sigma_2))) : 1;
+        umbrella_term_i = umbrella ? (pow(CV_point[0] - gaussian_centers[i], 2) / (2 * sigma_2)) : 0;
         for (int j = start_index[1]; j < end_index[1]; j++)
         {
-            umbrella_factor = (umbrella && num_pcs == 2) ? umbrella_factor_i * exp(-(pow(CV_point[1] - gaussian_centers[j], 2) / (2 * sigma_2))) : umbrella_factor_i;
+            umbrella_term_j = (umbrella && num_pcs == 2) ? (pow(CV_point[1] - gaussian_centers[j], 2) / (2 * sigma_2)) : 0;
+            // printf("j %f\n", umbrella_term_j);
             for (int k = 0; k < num_temps; k++)
             {
-                temp_factor = temp ? exp(-(betas[k] - beta0) * energy) : 1;
-                sum_for_V += temp_factor * umbrella_factor * exp(delta_F[i * num_lambda2 * num_temps + j * num_temps + k]);
+                temp_term = temp ? (betas[k] - beta0) * energy : 0;
+                // printf("temp %f\n", temp_term);
+                total_term = -(umbrella_term_i + umbrella_term_j + temp_term) + delta_F[i * num_lambda2 * num_temps + j * num_temps + k];
+                if (total_term > max_term)
+                {
+                    sum_for_V *= exp(max_term - temp_term);
+                    max_term = temp_term;
+                }
+                sum_for_V += exp(total_term - max_term);
             }
         }
     }
-    double V = -log(sum_for_V / (pow(num_lambda, num_pcs) * num_temps));
+    double V = -log(sum_for_V) - max_term + log(pow(num_lambda, num_pcs) * num_temps);
     return V;
 }
 
@@ -210,12 +221,16 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     double dsdx[MAX_NBR_PC * N];
     double exp_term = 0;
     double umbrella_factor_i;
-    double umbrella_factor;
-    double temp_factor;
     double umbrella_term_i;
+    double umbrella_factor_j;
     double umbrella_term_j;
+    double temp_factor;
     double temp_term;
     int num_lambda2 = (num_pcs == 2) ? num_lambda : 1;
+    double pre_max_term;
+    double max_term = -INFINITY;
+    double total_term;
+    bool new_max;
 
     for (int j = 0; j < N; j++)
     {
@@ -233,22 +248,39 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     {
         gaussian_diff_i = umbrella ? (CV_point[0] - gaussian_centers[i]) : 0;
         gaussian_diff_2_i = umbrella ? gaussian_diff_i * gaussian_diff_i : 0;
-        umbrella_factor_i = umbrella ? exp(-gaussian_diff_2_i / (2 * sigma_2)) : 1;
-        umbrella_term_i = umbrella ? gaussian_diff_i / sigma_2 : 0;
+        umbrella_term_i = umbrella ? gaussian_diff_2_i / (2 * sigma_2) : 0;
+        umbrella_factor_i = umbrella ? gaussian_diff_i / sigma_2 : 0;
         for (int j = start_index[1]; j < end_index[1]; j++)
         {
             gaussian_diff_j = (umbrella && num_pcs == 2) ? (CV_point[1] - gaussian_centers[j]) : 0;
             gaussian_diff_2_j = (umbrella && num_pcs == 2) ? gaussian_diff_j * gaussian_diff_j : 0;
-            umbrella_factor = (umbrella && num_pcs == 2) ? umbrella_factor_i * exp(-gaussian_diff_2_j / (2 * sigma_2)) : umbrella_factor_i;
-            umbrella_term_j = (umbrella && num_pcs == 2) ? gaussian_diff_j / sigma_2 : 0;
+            umbrella_term_j = (umbrella && num_pcs == 2) ? gaussian_diff_2_j / (2 * sigma_2) : 0;
+            umbrella_factor_j = (umbrella && num_pcs == 2) ? gaussian_diff_j / sigma_2 : 0;
             for (int k = 0; k < num_temps; k++)
             {
-                temp_factor = temp ? exp(-(betas[k] - beta0) * energy) : 1;
-                temp_term = temp ? (betas[k] - beta0) : 0;
-                exp_term = umbrella_factor * temp_factor * exp(delta_F[i * num_lambda2 * num_temps + j * num_temps + k]);
+                temp_term = temp ? (betas[k] - beta0) * energy : 0;
+                temp_factor = temp ? (betas[k] - beta0) : 0;
+                total_term = -(umbrella_term_i + umbrella_term_j + temp_term) + delta_F[i * num_lambda2 * num_temps + j * num_temps + k];
+                if (total_term > max_term)
+                {
+                    pre_max_term = max_term;
+                    max_term = total_term;
+                    new_max = true;
+                }
+                else
+                    new_max = false;
+                exp_term = exp(total_term - max_term);
                 for (int l = 0; l < N; l++)
                 {
-                    sum_for_dV[l] += exp_term * (temp_term * gradient[l] + (umbrella_term_i * dsdx[l]) + (umbrella_term_j * dsdx[N + l]));
+                    if (new_max)
+                    {
+                        sum_for_dV[l] *= exp(pre_max_term - max_term);
+                    }
+                    sum_for_dV[l] += exp_term * (temp_factor * gradient[l] + (umbrella_factor_i * dsdx[l]) + (umbrella_factor_j * dsdx[N + l]));
+                }
+                if (new_max)
+                {
+                    sum_for_V *= exp(pre_max_term - max_term);
                 }
                 sum_for_V += exp_term;
             }
@@ -266,31 +298,38 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     }
 }
 
-void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp)
+void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double max_delta_F_nominator_sum_term[(int)pow(num_lambda, num_pcs) * num_temps], double max_delta_F_denominator_sum_term, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp)
 {
     double gaussian_diff_i;
     double gaussian_diff_2_i;
     double gaussian_diff_j;
     double gaussian_diff_2_j;
-    double umbrella_factor_i;
-    double umbrella_factor;
-    double temp_factor;
+    double umbrella_term_i;
+    double umbrella_term;
+    double temp_term;
     int num_lambda2 = num_pcs == 2 ? num_lambda : 1;
     for (int lambda_index = 0; lambda_index < num_lambda; lambda_index++)
     {
         gaussian_diff_i = umbrella ? (CV_point[0] - gaussian_centers[lambda_index]) : 0;
         gaussian_diff_2_i = umbrella ? gaussian_diff_i * gaussian_diff_i : 0;
-        umbrella_factor_i = umbrella ? exp(-gaussian_diff_2_i / (2 * sigma_2)) : 1;
+        umbrella_term_i = umbrella ? gaussian_diff_2_i / (2 * sigma_2) : 0;
         for (int lambda_index_2 = 0; lambda_index_2 < num_lambda2; lambda_index_2++)
         {
             gaussian_diff_j = (umbrella && num_pcs == 2) ? (CV_point[1] - gaussian_centers[lambda_index_2]) : 0;
             gaussian_diff_2_j = (umbrella && num_pcs == 2) ? gaussian_diff_j * gaussian_diff_j : 0;
-            umbrella_factor = (umbrella && num_pcs == 2) ? umbrella_factor_i * exp(-gaussian_diff_2_j / (2 * sigma_2)) : umbrella_factor_i;
+            umbrella_term = (umbrella && num_pcs == 2) ? umbrella_term_i + gaussian_diff_2_j / (2 * sigma_2) : umbrella_term_i;
             for (int beta_index = 0; beta_index < num_temps; beta_index++)
             {
-                temp_factor = temp ? exp(-(betas[beta_index] - beta0) * energy) : 1;
-                delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] += umbrella_factor * temp_factor * exp(potential);
-                delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = -log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] / delta_F_denominator_sum);
+                temp_term = temp ? (betas[beta_index] - beta0) * energy : 0;
+                double new_max = -(umbrella_term + temp_term) + potential;
+                if (new_max > max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index])
+                {
+                    double max_diff = max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - new_max;
+                    delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] *= exp(max_diff);
+                    max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = new_max;
+                }
+                delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] += exp(-(umbrella_term + temp_term) + potential - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
+                delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
 
                 if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] >= dE)
                 {
