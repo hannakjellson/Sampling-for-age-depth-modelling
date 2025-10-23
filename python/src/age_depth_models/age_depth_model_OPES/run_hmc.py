@@ -39,6 +39,7 @@ def define_c_types(lib):
         ctypes.c_double,  # distance_threshold
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
+        ctypes.c_bool,  # uniform_temp
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.POINTER(ctypes.c_double),  # pcs
         ctypes.POINTER(ctypes.c_double),  # sp
@@ -65,7 +66,7 @@ def define_c_types(lib):
 
 def main():
     data = get_data()
-    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = True, umbrella = True)
+    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = True, umbrella = False)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
@@ -158,6 +159,7 @@ def main():
         ctypes.c_double(config["thr"]),
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
+        ctypes.c_bool(config["ut"]),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

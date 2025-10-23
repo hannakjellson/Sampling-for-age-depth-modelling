@@ -82,7 +82,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu07")
+    ) = read_data("dayu13A")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -120,12 +120,12 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
     keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc"]
     config=dict.fromkeys(keys)
     if not find_min:
-        config["N"] = 49                                                                      # Number of variables
-        config["H"] = 100                                                                     # Sediment depth
+        config["N"] = 15                                                                      # Number of variables
+        config["H"] = 30                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["dt"] = 0.005                                                                  # Step size
-        config["ns"] = 1000000                                                                   # Number of samples
+        config["ns"] = 1000                                                                   # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -147,6 +147,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                         config["sbt"] = 1                                                     # Starting value for temp bias
                         config["ebt"] = 5                                                    # End value for temp bias
                         config["nt"] = 5                                                     # Number of temperatures
+                        config["ut"] = True
                     if umbrella:
                         config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
                         config["sb"] = -10                                                              # Starting value for umbrella bias
@@ -159,8 +160,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
     else:                     
-        config["N"] = 49                                                                      # Number of variables
-        config["H"] = 100                                                                     # Sediment height
+        config["N"] = 15                                                                      # Number of variables
+        config["H"] = 30                                                                     # Sediment height
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["a"] = 1.5                                                                     # Gamma prior shape
@@ -169,8 +170,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         # For find_min_energy                     
         config["nlsp"] = 100                                                                  # Number of starting points
         config["mi"] = 100000                                                                 # Maximum number of iterations
-        config["dt"] = 0.0001  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
-        config["gl"] = 0.0001  # What i actually ran with: 0.0001                             # Gradient limit
+        config["dt"] = 0.0002  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
+        config["gl"] = 0.0002  # What i actually ran with: 0.0001                             # Gradient limit
                         
     config_str = "_".join(
     f"{k}{v:.2g}" if isinstance(v, float) else f"{k}{v}" #OBS: use 2g instead of 2f wwhen runnint again!
