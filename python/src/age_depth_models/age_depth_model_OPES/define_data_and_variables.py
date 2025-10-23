@@ -125,7 +125,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["dt"] = 0.005                                                                  # Step size
-        config["ns"] = 10000                                                                   # Number of samples
+        config["ns"] = 1000000                                                                   # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -152,7 +152,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                         config["sb"] = -10                                                              # Starting value for umbrella bias
                         config["eb"] = 10                                                               # End value for umbrella bias 
                         config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"]))) # Number of umbrellas in each CV direction
-                        config["npc"] = 2                                                               # Number of collective variables (pcs)
+                        config["npc"] = 1                                                               # Number of collective variables (pcs)
 
                 if bias == "rethinking":
                     config["g"] = 40                                                          # Scaling parameter
