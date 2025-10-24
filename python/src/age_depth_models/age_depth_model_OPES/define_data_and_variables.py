@@ -124,8 +124,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["H"] = 30                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.005                                                                  # Step size
-        config["ns"] = 1000                                                                   # Number of samples
+        config["dt"] = 0.007                                                                  # Step size
+        config["ns"] = 1000000                                                                   # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -170,8 +170,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         # For find_min_energy                     
         config["nlsp"] = 100                                                                  # Number of starting points
         config["mi"] = 100000                                                                 # Maximum number of iterations
-        config["dt"] = 0.0002  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
-        config["gl"] = 0.0002  # What i actually ran with: 0.0001                             # Gradient limit
+        config["dt"] = 0.0001  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
+        config["gl"] = 0.0001  # What i actually ran with: 0.0001                             # Gradient limit
                         
     config_str = "_".join(
     f"{k}{v:.2g}" if isinstance(v, float) else f"{k}{v}" #OBS: use 2g instead of 2f wwhen runnint again!
