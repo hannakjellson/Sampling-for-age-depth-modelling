@@ -198,8 +198,8 @@ double bias_potential(int num_pcs, double CV_point[num_pcs], int num_lambda, int
                 total_term = -(umbrella_term_i + umbrella_term_j + temp_term) + delta_F[i * num_lambda2 * num_temps + j * num_temps + k];
                 if (total_term > max_term)
                 {
-                    sum_for_V *= exp(max_term - temp_term);
-                    max_term = temp_term;
+                    sum_for_V *= exp(max_term - total_term);
+                    max_term = total_term;
                 }
                 sum_for_V += exp(total_term - max_term);
             }
