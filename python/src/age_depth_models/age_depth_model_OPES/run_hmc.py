@@ -97,6 +97,7 @@ def main():
 
     energies = Path(Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy").resolve()
     energies = np.load(energies)
+
     sp = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy"
     sp = np.load(sp)
     
@@ -116,10 +117,14 @@ def main():
     pcs = np.ascontiguousarray(pcs.T) if not np.isnan(config["npc"]) else np.ascontiguousarray(eigenvectors[:, 0].T)
     
     # Starting points and energies
-    sp = sp[energy_idx, :]
-    energies = energies[energy_idx]
-    sp_energies = energies[:config["nch"]]
-    sp = sp[:config["nch"], :]
+    if config["rsp"]:
+        sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
+        sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
+    else:
+        sp = sp[energy_idx, :]
+        energies = energies[energy_idx]
+        sp_energies = energies[:config["nch"]]
+        sp = sp[:config["nch"], :]
     # print(sp_energies)
     # print(sp)
 

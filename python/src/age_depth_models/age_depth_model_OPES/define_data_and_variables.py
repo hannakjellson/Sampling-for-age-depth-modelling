@@ -124,8 +124,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["H"] = 30                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.007                                                                  # Step size
-        config["ns"] = 1000000                                                                   # Number of samples
+        config["dt"] = 0.005                                                                  # Step size
+        config["ns"] = 100                                                                  # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -141,13 +141,14 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
             config["s"] = 0.4                                                                   # Bias sigma
             config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
                 
-            if bias !="":                      
+            if bias !="": 
+                config["rsp"] = True                   
                 if bias == "unified":  
                     if temp:                      
                         config["sbt"] = 1                                                     # Starting value for temp bias
                         config["ebt"] = 5                                                    # End value for temp bias
-                        config["nt"] = 5                                                     # Number of temperatures
-                        config["ut"] = True
+                        config["nt"] = 10                                                     # Number of temperatures
+                        config["ut"] = False
                     if umbrella:
                         config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
                         config["sb"] = -10                                                              # Starting value for umbrella bias
