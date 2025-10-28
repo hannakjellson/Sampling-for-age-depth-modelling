@@ -22,6 +22,7 @@ def define_c_types(lib):
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
+        ctypes.c_int,  # seed
         ctypes.c_double,  # H
         ctypes.c_double,  # dt
         ctypes.c_double,  # dc
@@ -68,6 +69,7 @@ def main():
     data = get_data()
     config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = True, umbrella = False)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
+    np.random.seed(config["sd"])
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
     config_find_min = {k: (float("nan") if v is None else v) for k, v in config_find_min.items()}
@@ -121,12 +123,31 @@ def main():
         sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
         sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
     else:
-        sp = sp[energy_idx, :]
-        energies = energies[energy_idx]
-        sp_energies = energies[:config["nch"]]
-        sp = sp[:config["nch"], :]
-    # print(sp_energies)
-    # print(sp)
+        if(config["hmc"]):
+            outdir_startE = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_energies_{config_find_min_str}.npy"
+            outdir_start_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_samples_{config_find_min_str}.npy"
+            
+            sp_energies = np.load(outdir_startE)
+            sp = np.load(outdir_start_samples)
+
+            flat_E = sp_energies.flatten()
+            flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
+            
+            q25, q75 = np.percentile(flat_E, [25, 75])
+            candidate_mask = (flat_E >= q25) & (flat_E <= q75)
+            candidate_E = flat_E[candidate_mask]
+            candidate_samples = flat_samples[candidate_mask]
+            indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
+            sp = candidate_samples[indices]
+            sp_energies = candidate_E[indices]
+            print(sp_energies)
+        else:
+            sp = sp[energy_idx, :]
+            energies = energies[energy_idx]
+            sp_energies = energies[:config["nch"]]
+            sp = sp[:config["nch"], :]
+    print(sp_energies)
+    print(sp)
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
@@ -147,6 +168,7 @@ def main():
         ctypes.c_int(data["num_c14_depths"]),
         ctypes.c_int(data["num_D18O_depths"]),
         ctypes.c_int(data["num_D18O_reference_times"]),
+        ctypes.c_int(config["sd"]),
         ctypes.c_double(config["H"]),
         ctypes.c_double(config["dt"]),
         ctypes.c_double(config["dc"]),

@@ -21,7 +21,7 @@
 
 void hmc(
     int N, int num_dt, int num_HMC, int num_chains, int num_samples, int num_lambda, int num_temps, int num_pcs,
-    int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, double H, double dt, double delta_c,
+    int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double dE, double startbias, double endbias,
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
     double cap_width, bool uniform_temp, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
@@ -102,7 +102,7 @@ void hmc(
         gsl_rng_env_setup();
         T = gsl_rng_default;
         r = gsl_rng_alloc(T);
-        gsl_rng_set(r, 41 + i);
+        gsl_rng_set(r, seed + i);
 
         double momentum[N];
         double momentum_init[N];

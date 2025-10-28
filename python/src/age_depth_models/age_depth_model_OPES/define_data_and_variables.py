@@ -117,21 +117,23 @@ def get_data():
 
 
 def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbrella = False):
-    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc"]
+    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc", "hmc", "hmcns", "ut", "rsp", "sd"]
     config=dict.fromkeys(keys)
     if not find_min:
         config["N"] = 15                                                                      # Number of variables
         config["H"] = 30                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.005                                                                  # Step size
-        config["ns"] = 100                                                                  # Number of samples
+        config["dt"] = 0.007                                                                  # Step size
+        config["ns"] = 100000                                                                  # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
         config["nch"] = 5                                                                     # Number of chains
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
+        config["sd"] = 42
+        config["rsp"] = False
                 
         if cap:                   
             config["ces"] = 0.01                                                               # Cap energy scaling
@@ -142,7 +144,6 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
             config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
                 
             if bias !="": 
-                config["rsp"] = True                   
                 if bias == "unified":  
                     if temp:                      
                         config["sbt"] = 1                                                     # Starting value for temp bias
@@ -160,7 +161,15 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                     config["g"] = 40                                                          # Scaling parameter
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
-    else:                     
+    else:   
+        config["hmc"] = True 
+        config["sd"] = 42
+        if config["hmc"]:
+            config["ns"] = 100
+            config["dt"] = 0.005                                                                  # Step size
+            config["ndt"] = 10                                                                    # Number of Leapfrog steps
+            config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
+
         config["N"] = 15                                                                      # Number of variables
         config["H"] = 30                                                                     # Sediment height
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
@@ -170,9 +179,9 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                 
         # For find_min_energy                     
         config["nlsp"] = 100                                                                  # Number of starting points
-        config["mi"] = 100000                                                                 # Maximum number of iterations
-        config["dt"] = 0.0001  # What i actually ran with: 0.0001, big example maybe smaller. # Stepsize
-        config["gl"] = 0.0001  # What i actually ran with: 0.0001                             # Gradient limit
+        config["mi"] = 100                                                                 # Maximum number of iterations
+        config["adt"] = 0.0001                                                               # Adams stepsize
+        config["gl"] = 0.0001                                                                # Gradient limit
                         
     config_str = "_".join(
     f"{k}{v:.2g}" if isinstance(v, float) else f"{k}{v}" #OBS: use 2g instead of 2f wwhen runnint again!

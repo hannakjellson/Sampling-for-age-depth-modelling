@@ -35,7 +35,7 @@ int cmp_energyindex(const void *a, const void *b)
 }
 
 void adams(int N, double delta_c, const double *cs, double a, double b, double theta,
-           int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
+           int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, const double *c14_ages, const double *c14_depths,
            const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
            const double *D18O_reference, const double *D18O_reference_times, int num_local_sp, int max_iter, double stepsize, double *Eout, double grad_lim, double *samples_out, int num_chains)
 {
@@ -50,7 +50,7 @@ void adams(int N, double delta_c, const double *cs, double a, double b, double t
     for (int i = 0; i < num_local_sp; i++)
     {
         rngs[i] = gsl_rng_alloc(T);
-        gsl_rng_set(rngs[i], 41 + i); // deterministic per-index seed
+        gsl_rng_set(rngs[i], seed + i); // deterministic per-index seed
     }
 
     int num_d18O_points_stoch = 50;

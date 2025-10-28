@@ -16,6 +16,7 @@ def define_c_types(lib):
         ctypes.c_int,  # num_c14_depths
         ctypes.c_int,  # num_D18O_depths
         ctypes.c_int,  # num_D18O_reference_times
+        ctypes.c_int,  # seed
         ctypes.POINTER(ctypes.c_double),  # c14_ages
         ctypes.POINTER(ctypes.c_double),  # c14_depths
         ctypes.POINTER(ctypes.c_double),  # c14_sigma
@@ -34,19 +35,78 @@ def define_c_types(lib):
     lib.adams.restype = None
     return lib
 
+def define_c_types_hmc(lib):
+    lib.hmc.argtypes = [
+        ctypes.c_int,  # N
+        ctypes.c_int,  # ndt
+        ctypes.c_int,  # nHMC
+        ctypes.c_int,  # nchains
+        ctypes.c_int,  # nsamples
+        ctypes.c_int,  # nlambda
+        ctypes.c_int,  # ntemp
+        ctypes.c_int,  # npc
+        ctypes.c_int,  # num_c14_depths
+        ctypes.c_int,  # num_D18O_depths
+        ctypes.c_int,  # num_D18O_reference_times
+        ctypes.c_int,  # seed
+        ctypes.c_double,  # H
+        ctypes.c_double,  # dt
+        ctypes.c_double,  # dc
+        ctypes.c_double,  # sigma
+        ctypes.c_double,  # a
+        ctypes.c_double,  # b
+        ctypes.c_double,  # theta
+        ctypes.c_double,  # dE
+        ctypes.c_double,  # startbias
+        ctypes.c_double,  # endbias
+        ctypes.c_double,  # startbiastemp
+        ctypes.c_double,  # endbiastemp
+        ctypes.c_double,  # dist
+        ctypes.c_double,  # gamma
+        ctypes.c_double,  # distance_threshold
+        ctypes.c_double,  # cap_energy_scaling
+        ctypes.c_double,  # cap_width
+        ctypes.c_bool,  # uniform_temp
+        ctypes.POINTER(ctypes.c_double),  # cs
+        ctypes.POINTER(ctypes.c_double),  # pcs
+        ctypes.POINTER(ctypes.c_double),  # sp
+        ctypes.POINTER(ctypes.c_double),  # sp_mean
+        ctypes.POINTER(ctypes.c_double),  # sp_energies
+        ctypes.POINTER(ctypes.c_double),  # c14_ages
+        ctypes.POINTER(ctypes.c_double),  # c14_depths
+        ctypes.POINTER(ctypes.c_double),  # c14_sigma
+        ctypes.POINTER(ctypes.c_double),  # D18O
+        ctypes.POINTER(ctypes.c_double),  # D18O_depths
+        ctypes.POINTER(ctypes.c_double),  # D18O_sigma
+        ctypes.POINTER(ctypes.c_double),  # D18O_reference
+        ctypes.POINTER(ctypes.c_double),  # D18O_reference_times
+        ctypes.POINTER(ctypes.c_double),  # samples_out
+        ctypes.POINTER(ctypes.c_double),  # energy_out
+        ctypes.POINTER(ctypes.c_double),  # bias_out
+        ctypes.c_char_p,
+    ]
+
+    lib.hmc.restype = None
+
+    return lib
+
 
 def main():
     data = get_data()
     config, config_str = get_hmc_config(find_min = True)
+    config = {k: (float("nan") if v is None else v) for k, v in config.items()}
     
     # Load library depending on OS
     if platform.system() == "Windows":
         os.add_dll_directory("C:/msys64/ucrt64/bin")
         lib = ctypes.CDLL("./adams.dll")
+        lib_hmc = ctypes.CDLL("./hmc.dll")
     else:
         # Linux / macOS
         lib = ctypes.CDLL("./adams.so")
+        lib_hmc = ctypes.CDLL("./hmc.so")
     lib = define_c_types(lib)
+    lib_hmc = define_c_types_hmc(lib_hmc)
 
     cs = np.ascontiguousarray(config["cs"], dtype=np.float64)
 
@@ -78,6 +138,7 @@ def main():
         ctypes.c_int(len(c14_depths)),
         ctypes.c_int(len(D18O_depths)),
         ctypes.c_int(len(D18O_reference_times)),
+        ctypes.c_int(config["sd"]),
         c14_ages.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         c14_depths.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         c14_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
@@ -88,7 +149,7 @@ def main():
         D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_int(config["nlsp"]),
         ctypes.c_int(config["mi"]),
-        ctypes.c_double(config["dt"]),
+        ctypes.c_double(config["adt"]),
         Eout,
         ctypes.c_double(config["gl"]),
         samples_out,
@@ -98,8 +159,79 @@ def main():
     energies = np.ctypeslib.as_array(Eout)
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
 
-    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"Emin_{config_str}.npy"
     outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"samples_min_{config_str}.npy"
+    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"Emin_{config_str}.npy"
+    np.save(outdir_samples, samples)
+    np.save(outdir_Emin, energies)
+
+    pcs = np.zeros(1)
+    pcs = np.ascontiguousarray(pcs)
+    
+    sp_mean = np.mean(samples, axis = 0)
+
+    total = config["nlsp"] * config["ns"]
+    total_times_N = total * config["N"]
+    samples_out = (ctypes.c_double * total_times_N)()
+    energy_out = (ctypes.c_double * total)()
+    bias_out = (ctypes.c_double * total)()
+    config_str_input = config_str.encode("utf-8")
+
+    lib_hmc.hmc(
+        ctypes.c_int(config["N"]),
+        ctypes.c_int(config["ndt"]),
+        ctypes.c_int(config["nHMC"]),
+        ctypes.c_int(config["nlsp"]),
+        ctypes.c_int(config["ns"]),
+        ctypes.c_int(config["nl"] if type(config["nl"]) == int else -1), # if its nan its intepreted as a float and yields error
+        ctypes.c_int(config["nt"] if type(config["nt"]) == int else -1),
+        ctypes.c_int(config["npc"] if type(config["npc"]) == int else -1),
+        ctypes.c_int(data["num_c14_depths"]),
+        ctypes.c_int(data["num_D18O_depths"]),
+        ctypes.c_int(data["num_D18O_reference_times"]),
+        ctypes.c_int(config["sd"]),
+        ctypes.c_double(config["H"]),
+        ctypes.c_double(config["dt"]),
+        ctypes.c_double(config["dc"]),
+        ctypes.c_double(config["s"]),
+        ctypes.c_double(config["a"]),
+        ctypes.c_double(config["b"]),
+        ctypes.c_double(data["theta"]),
+        ctypes.c_double(config["dE"]),
+        ctypes.c_double(config["sb"]),
+        ctypes.c_double(config["eb"]),
+        ctypes.c_double(config["sbt"]),
+        ctypes.c_double(config["ebt"]),
+        ctypes.c_double(config["d"]),
+        ctypes.c_double(config["g"]),
+        ctypes.c_double(config["thr"]),
+        ctypes.c_double(config["ces"]),
+        ctypes.c_double(config["cw"]),
+        ctypes.c_bool(config["ut"]),
+        cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        samples.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        sp_mean.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        energies.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        c14_ages.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        c14_depths.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        c14_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        D18O.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        D18O_depths.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        D18O_sigma.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        D18O_reference.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        D18O_reference_times.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        samples_out,
+        energy_out,
+        bias_out,
+        config_str_input,
+    )
+
+    # Convert outputs to numpy
+    energies = np.ctypeslib.as_array(energy_out).reshape(config["nlsp"], config["ns"])
+    samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["ns"], config["N"])
+
+    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_energies_{config_str}.npy"
+    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_samples_{config_str}.npy"
     np.save(outdir_Emin, energies)
     np.save(outdir_samples, samples)
 
