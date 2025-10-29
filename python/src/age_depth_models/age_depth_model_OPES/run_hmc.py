@@ -41,6 +41,8 @@ def define_c_types(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
         ctypes.c_bool,  # uniform_temp
+        ctypes.c_bool,  # if starting temps
+        ctypes.POINTER(ctypes.c_double),  # temps
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.POINTER(ctypes.c_double),  # pcs
         ctypes.POINTER(ctypes.c_double),  # sp
@@ -149,6 +151,14 @@ def main():
     print(sp_energies)
     print(sp)
 
+    if config["temps"]:
+        outdir_start_temps = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_Ts.npy"
+        temps = np.load(outdir_start_temps)
+        config["nt"] = len(temps)
+    else:
+        temps = np.zeros(1)
+    temps = np.ascontiguousarray(temps)
+
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
@@ -187,6 +197,8 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
         ctypes.c_bool(config["ut"]),
+        ctypes.c_bool(config["temps"]),
+        temps.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

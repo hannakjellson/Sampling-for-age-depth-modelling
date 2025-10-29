@@ -194,7 +194,6 @@ double bias_potential(int num_pcs, double CV_point[num_pcs], int num_lambda, int
             for (int k = 0; k < num_temps; k++)
             {
                 temp_term = temp ? (betas[k] - beta0) * energy : 0;
-                // printf("dF %f\n", delta_F[i * num_lambda2 * num_temps + j * num_temps + k]);
                 // printf("temp %f\n", temp_term);
                 total_term = -(umbrella_term_i + umbrella_term_j + temp_term) + delta_F[i * num_lambda2 * num_temps + j * num_temps + k];
                 if (total_term > max_term)
@@ -206,11 +205,7 @@ double bias_potential(int num_pcs, double CV_point[num_pcs], int num_lambda, int
             }
         }
     }
-    // printf("max %e\n", max_term);
-    // printf("sfv %e\n", sum_for_V);
-    // printf("term %f\n", log(pow(num_lambda, num_pcs) * num_temps));
     double V = -log(sum_for_V) - max_term + log(pow(num_lambda, num_pcs) * num_temps);
-    // printf("bias in %e\n", V);
     return V;
 }
 
