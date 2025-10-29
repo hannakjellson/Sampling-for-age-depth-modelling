@@ -66,7 +66,7 @@ def define_c_types_hmc(lib):
         ctypes.c_double,  # distance_threshold
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
-        ctypes.c_bool,  # uniform_temp
+        ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.POINTER(ctypes.c_double),  # pcs
         ctypes.POINTER(ctypes.c_double),  # sp
@@ -166,6 +166,9 @@ def main():
 
     pcs = np.zeros(1)
     pcs = np.ascontiguousarray(pcs)
+
+    betas = np.zeros(1)
+    betas = np.ascontiguousarray(betas)
     
     sp_mean = np.mean(samples, axis = 0)
 
@@ -206,7 +209,7 @@ def main():
         ctypes.c_double(config["thr"]),
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
-        ctypes.c_bool(config["ut"]),
+        betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         samples.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

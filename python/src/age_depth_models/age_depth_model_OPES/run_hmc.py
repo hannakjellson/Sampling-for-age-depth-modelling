@@ -1,5 +1,6 @@
 import ctypes
 import numpy as np
+import scipy as sc
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -40,9 +41,7 @@ def define_c_types(lib):
         ctypes.c_double,  # distance_threshold
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
-        ctypes.c_bool,  # uniform_temp
-        ctypes.c_bool,  # if starting temps
-        ctypes.POINTER(ctypes.c_double),  # temps
+        ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
         ctypes.POINTER(ctypes.c_double),  # pcs
         ctypes.POINTER(ctypes.c_double),  # sp
@@ -68,9 +67,14 @@ def define_c_types(lib):
 
 
 def main():
-    data = get_data()
-    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = False, temp = True, umbrella = False)
+    bias = "unified"
+    temp = True
+    cap = False
+    umbrella = False
+    config, config_str = get_hmc_config(find_min = False, bias = bias, cap = cap, temp = temp, umbrella = umbrella)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
+
+    data = get_data()
     np.random.seed(config["sd"])
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
@@ -125,7 +129,7 @@ def main():
         sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
         sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
     else:
-        if(config["hmc"]):
+        if(config_find_min["hmc"]):
             outdir_startE = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_energies_{config_find_min_str}.npy"
             outdir_start_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_samples_{config_find_min_str}.npy"
             
@@ -135,6 +139,15 @@ def main():
             flat_E = sp_energies.flatten()
             flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
+            if config["temps_unb"]:
+                def n_eff(beta):
+                    weights = np.exp(-(beta - 1)*energies)
+                    return np.sum(weights)**2 - 0.5 * len(weights) * np.sum(weights**2)
+                sol_neg= abs(sc.optimize.brentq(n_eff, 1/config["ebt"], 1/config["sbt"])-1)
+                config["nt"] = int((1/config["sbt"] - 1/config["ebt"])/sol_neg)
+                betas = np.linspace(1/config["ebt"], 1/config["sbt"], config["nt"])
+                betas = np.ascontiguousarray(betas)
+                
             q25, q75 = np.percentile(flat_E, [25, 75])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
             candidate_E = flat_E[candidate_mask]
@@ -143,6 +156,7 @@ def main():
             sp = candidate_samples[indices]
             sp_energies = candidate_E[indices]
             print(sp_energies)
+
         else:
             sp = sp[energy_idx, :]
             energies = energies[energy_idx]
@@ -151,13 +165,22 @@ def main():
     print(sp_energies)
     print(sp)
 
-    if config["temps"]:
-        outdir_start_temps = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_Ts.npy"
-        temps = np.load(outdir_start_temps)
-        config["nt"] = len(temps)
-    else:
-        temps = np.zeros(1)
-    temps = np.ascontiguousarray(temps)
+    if not config["temps_unb"]:
+        temps = np.empty((1))
+        if config["temps_anders"]:
+            outdir_start_temps = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_Ts.npy"
+            temps = np.load(outdir_start_temps)
+            config["nt"] = len(temps)
+        elif temp and not config["temps_anders"] and not config["temps_unb"]:
+            factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1)
+            if config["ut"]:
+                temps = config["sbt"] + (factor * (config["ebt"] - config["sbt"]))
+            else:
+                temps = config["sbt"] * ((config["ebt"] / config["sbt"])**factor)
+        elif not temp:
+            temps = np.zeros(1)
+        betas = 1/temps
+        betas = np.ascontiguousarray(betas)
 
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
@@ -196,9 +219,7 @@ def main():
         ctypes.c_double(config["thr"]),
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
-        ctypes.c_bool(config["ut"]),
-        ctypes.c_bool(config["temps"]),
-        temps.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         pcs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         sp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

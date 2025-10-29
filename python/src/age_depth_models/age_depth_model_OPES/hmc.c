@@ -24,7 +24,7 @@ void hmc(
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double dE, double startbias, double endbias,
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
-    double cap_width, bool uniform_temp, bool if_start_temps, const double *start_temps, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
+    double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str)
 {
@@ -48,30 +48,11 @@ void hmc(
         }
     }
 
-    double *betas = NULL;
-    double beta0;
+    double beta0 = 1;
     if (temp_bias)
     {
         num_lambda = umbrella_bias ? num_lambda : 1;
         num_pcs = umbrella_bias ? num_pcs : 1;
-        double temp_center;
-        double factor = 0;
-        betas = malloc(num_temps * sizeof(double));
-        for (int i = 0; i < num_temps; i++)
-        {
-            if (if_start_temps)
-                temp_center = start_temps[i];
-            else
-            {
-                factor = (num_temps - 1 > 0) ? (double)i / (num_temps - 1) : 0.0;
-                if (uniform_temp)
-                    temp_center = startbias_temp + (factor * (endbias_temp - startbias_temp));
-                else
-                    temp_center = startbias_temp * pow((endbias_temp / startbias_temp), factor);
-            }
-            betas[i] = 1 / temp_center;
-        }
-        beta0 = 1; // Should be one
     }
 
     if (!unified && !rethinking)
