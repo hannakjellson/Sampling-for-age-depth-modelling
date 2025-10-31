@@ -26,7 +26,7 @@ void hmc(
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
-    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str)
+    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name)
 {
     bool umbrella_bias = !(num_lambda == -1);
     bool temp_bias = !(num_temps == -1);
@@ -137,8 +137,8 @@ void hmc(
             char *dir = dirname(src_dir);     // get the directory part
 
             // Build the relative path
-            snprintf(fname, sizeof(fname), "%s/../../../../output/age_depth_OPES/deltaF_chain%d_%s.bin",
-                     dir, i, config_str);
+            snprintf(fname, sizeof(fname), "%s/../../../../output/%s/%s/%s/deltaF_chain%d.bin",
+                     dir, data_name, config_find_min_str, config_str, i);
 
             // --- Open file for writing ---
             remove(fname);

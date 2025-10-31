@@ -59,12 +59,13 @@ def define_c_types(lib):
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
         ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
     ]
 
     lib.hmc.restype = None
 
     return lib
-
 
 def main():
     bias = "unified"
@@ -74,11 +75,19 @@ def main():
     config, config_str = get_hmc_config(find_min = False, bias = bias, cap = cap, temp = temp, umbrella = umbrella)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
-    data = get_data()
+    data_name = "dayu13A"
+    data = get_data(data_name)
     np.random.seed(config["sd"])
 
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
     config_find_min = {k: (float("nan") if v is None else v) for k, v in config_find_min.items()}
+
+    mid_name = config_find_min_str if not config["rsp"] else f"seed{config["sd"]}"
+    
+    base_dir = Path(__file__).parent 
+    output_dir = base_dir / f"../../../../output/{data_name}/{mid_name}/{config_str}"
+    output_dir = output_dir.resolve()
+    os.makedirs(output_dir, exist_ok=True)
 
     # Load library depending on OS
     if platform.system() == "Windows":
@@ -103,10 +112,10 @@ def main():
     )
     D18O_reference = np.ascontiguousarray(data["d18O_reference"], dtype=np.float64)
 
-    energies = Path(Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/Emin_{config_find_min_str}.npy").resolve()
+    energies = Path(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/Emin.npy").resolve()
     energies = np.load(energies)
 
-    sp = Path(__file__).resolve().parent / f"../../../../output/age_depth_OPES/samples_min_{config_find_min_str}.npy"
+    sp = Path(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/samples_min.npy").resolve()
     sp = np.load(sp)
     
     energy_idx = np.argsort(energies) # might bug if there are not enough starting points.
@@ -128,10 +137,12 @@ def main():
     if config["rsp"]:
         sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
         sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
+        output_dir = base_dir / f"seed{config["sd"]}/{config_str}"
+        np.save(Path(base_dir / f"../../../../output/{data_name}/seed{config["sd"]}" / "starting_points.npy").resolve(), sp)
     else:
         if(config_find_min["hmc"]):
-            outdir_startE = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_energies_{config_find_min_str}.npy"
-            outdir_start_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_samples_{config_find_min_str}.npy"
+            outdir_startE = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"{config_find_min_str}" / "start_energies.npy"
+            outdir_start_samples = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"{config_find_min_str}" / "start_samples.npy"
             
             sp_energies = np.load(outdir_startE)
             sp = np.load(outdir_start_samples)
@@ -139,14 +150,15 @@ def main():
             flat_E = sp_energies.flatten()
             flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
-            if config["temps_unb"]:
+            if config["unb"]:
                 def n_eff(beta):
-                    weights = np.exp(-(beta - 1)*energies)
+                    weights = np.exp(-(beta - 1)*flat_E)
                     return np.sum(weights)**2 - 0.5 * len(weights) * np.sum(weights**2)
                 sol_neg= abs(sc.optimize.brentq(n_eff, 1/config["ebt"], 1/config["sbt"])-1)
                 config["nt"] = int((1/config["sbt"] - 1/config["ebt"])/sol_neg)
                 betas = np.linspace(1/config["ebt"], 1/config["sbt"], config["nt"])
                 betas = np.ascontiguousarray(betas)
+                np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config["sbt"]}_ebt{config["ebt"]}.npy", 1/betas)
                 
             q25, q75 = np.percentile(flat_E, [25, 75])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
@@ -165,13 +177,13 @@ def main():
     print(sp_energies)
     print(sp)
 
-    if not config["temps_unb"]:
+    if not config["unb"]:
         temps = np.empty((1))
-        if config["temps_anders"]:
-            outdir_start_temps = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_Ts.npy"
+        if config["ai"]:
+            outdir_start_temps = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"start_Ts.npy"
             temps = np.load(outdir_start_temps)
             config["nt"] = len(temps)
-        elif temp and not config["temps_anders"] and not config["temps_unb"]:
+        elif temp and not config["ai"] and not config["unb"]:
             factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1)
             if config["ut"]:
                 temps = config["sbt"] + (factor * (config["ebt"] - config["sbt"]))
@@ -188,6 +200,8 @@ def main():
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
     config_str_input = config_str.encode("utf-8")
+    config_find_min_str_input = config_find_min_str.encode("utf-8")
+    data_name_input = data_name.encode("utf-8")
 
     lib.hmc(
         ctypes.c_int(config["N"]),
@@ -237,21 +251,23 @@ def main():
         energy_out,
         bias_out,
         config_str_input,
+        config_find_min_str_input,
+        data_name_input,
     )
 
     samples = np.ctypeslib.as_array(samples_out)
     samples = np.reshape(samples, (config["nch"], config["ns"], config["N"]))
-    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"samples_{config_str}.npy"
+    outdir_samples = output_dir / "samples.npy"
     np.save(outdir_samples, samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (config["nch"], config["ns"]))
-    outdir_energy = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"energy_{config_str}.npy"
+    outdir_energy = output_dir / "energy.npy"
     np.save(outdir_energy, energy_values)
     
     bias_values = np.ctypeslib.as_array(bias_out)
     bias_values = np.reshape(bias_values, (config["nch"], config["ns"]))
-    outdir_bias = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"bias_{config_str}.npy"
+    outdir_bias = output_dir / "bias.npy"
     np.save(outdir_bias, bias_values)
 
     print("Resampling\n")
@@ -272,7 +288,7 @@ def main():
             
 
     resampled_samples = np.array(resampled_samples)
-    outdir_resamp = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"resamp_{config_str}.npy"
+    outdir_resamp = output_dir / "resamp.npy"
     np.save(outdir_resamp, resampled_samples)
 
 

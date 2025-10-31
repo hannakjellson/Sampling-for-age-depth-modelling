@@ -84,6 +84,8 @@ def define_c_types_hmc(lib):
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # bias_out
         ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
     ]
 
     lib.hmc.restype = None
@@ -92,9 +94,13 @@ def define_c_types_hmc(lib):
 
 
 def main():
-    data = get_data()
+    data_name = "dayu13A"
+    data = get_data(data_name)
     config, config_str = get_hmc_config(find_min = True)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
+    path = Path(__file__).resolve().parent / f"../../../../output/{data_name}/{config_str}"
+    path = path.resolve()
+    os.makedirs(path, exist_ok=True)
     
     # Load library depending on OS
     if platform.system() == "Windows":
@@ -159,8 +165,8 @@ def main():
     energies = np.ctypeslib.as_array(Eout)
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
 
-    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"samples_min_{config_str}.npy"
-    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"Emin_{config_str}.npy"
+    outdir_samples = path / "samples_min.npy"
+    outdir_Emin = path / "Emin.npy"
     np.save(outdir_samples, samples)
     np.save(outdir_Emin, energies)
 
@@ -178,6 +184,8 @@ def main():
     energy_out = (ctypes.c_double * total)()
     bias_out = (ctypes.c_double * total)()
     config_str_input = config_str.encode("utf-8")
+    config_find_min_str_input = ''.encode("utf-8")
+    data_name_input = ''.encode("utf-8")
 
     lib_hmc.hmc(
         ctypes.c_int(config["N"]),
@@ -227,14 +235,16 @@ def main():
         energy_out,
         bias_out,
         config_str_input,
+        config_find_min_str_input,
+        data_name_input,
     )
 
     # Convert outputs to numpy
     energies = np.ctypeslib.as_array(energy_out).reshape(config["nlsp"], config["ns"])
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["ns"], config["N"])
 
-    outdir_Emin = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_energies_{config_str}.npy"
-    outdir_samples = Path(__file__).resolve().parent / "../../../../output/age_depth_OPES" / f"start_samples_{config_str}.npy"
+    outdir_Emin = path / "start_energies.npy"
+    outdir_samples = path / "start_samples.npy"
     np.save(outdir_Emin, energies)
     np.save(outdir_samples, samples)
 

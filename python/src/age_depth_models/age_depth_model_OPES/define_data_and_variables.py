@@ -72,7 +72,7 @@ def read_data(data):
     )
 
 
-def get_data():
+def get_data(name):
     (
         depths,
         c14_ages,
@@ -82,7 +82,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu13A")
+    ) = read_data(name)
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -140,21 +140,21 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
             config["cw"] = 40                                                                # Cap width
         
         if bias !="":                     
-            config["s"] = 0.4                                                                   # Bias sigma
             config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
                 
             if bias !="": 
                 if bias == "unified":  
                     if temp:       
-                        config["temps_unb"] = False
-                        config["temps_anders"] = False
-                        if not config["temps_anders"]:               
+                        config["unb"] = True
+                        config["ai"] = False
+                        if not config["ai"]:               
                             config["sbt"] = 1                                                     # Starting value for temp bias
                             config["ebt"] = 5                                                    # End value for temp bias
-                            if not config["temps_unb"]:
-                                config["nt"] = 10                                                     # Number of temperatures
+                            if not config["unb"]:
+                                config["nt"] = 5                                                     # Number of temperatures
                                 config["ut"] = False
                     if umbrella:
+                        config["s"] = 0.4                                                                   # Bias sigma
                         config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
                         config["sb"] = -10                                                              # Starting value for umbrella bias
                         config["eb"] = 10                                                               # End value for umbrella bias 
@@ -162,6 +162,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                         config["npc"] = 1                                                               # Number of collective variables (pcs)
 
                 if bias == "rethinking":
+                    config["s"] = 0.4                                                                   # Bias sigma
                     config["g"] = 40                                                          # Scaling parameter
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
@@ -187,10 +188,19 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["adt"] = 0.0001                                                               # Adams stepsize
         config["gl"] = 0.0001                                                                # Gradient limit
                         
-    config_str = "_".join(
-    f"{k}{v:.2g}" if isinstance(v, float) else f"{k}{v}" #OBS: use 2g instead of 2f wwhen runnint again!
-    for k, v in config.items()
-    if isinstance(v, (int, float))
-    )   
+    special_key = "rsp"
+
+    parts = []
+    for k, v in config.items():
+        if k == special_key:
+            continue
+        if isinstance(v, bool):
+            if v:  # only include if True
+                parts.append(f"{k}")
+        elif isinstance(v, float):
+            parts.append(f"{k}{v:.2g}")
+        elif isinstance(v, int):
+            parts.append(f"{k}{v}")
+    config_str = "_".join(parts)
 
     return config, config_str
