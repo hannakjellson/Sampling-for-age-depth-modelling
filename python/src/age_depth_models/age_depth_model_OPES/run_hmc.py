@@ -82,7 +82,7 @@ def main():
     config_find_min, config_find_min_str = get_hmc_config(find_min = True)
     config_find_min = {k: (float("nan") if v is None else v) for k, v in config_find_min.items()}
 
-    mid_name = config_find_min_str if not config["rsp"] else f"seed{config["sd"]}"
+    mid_name = config_find_min_str if not config["rsp"] else f"seed{config['sd']}"
     
     base_dir = Path(__file__).parent 
     output_dir = base_dir / f"../../../../output/{data_name}/{mid_name}/{config_str}"
@@ -137,8 +137,8 @@ def main():
     if config["rsp"]:
         sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
         sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
-        output_dir = base_dir / f"seed{config["sd"]}/{config_str}"
-        np.save(Path(base_dir / f"../../../../output/{data_name}/seed{config["sd"]}" / "starting_points.npy").resolve(), sp)
+        output_dir = base_dir / f"seed{config['sd']}/{config_str}"
+        np.save(Path(base_dir / f"../../../../output/{data_name}/seed{config['sd']}" / "starting_points.npy").resolve(), sp)
     else:
         if(config_find_min["hmc"]):
             outdir_startE = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"{config_find_min_str}" / "start_energies.npy"
@@ -158,7 +158,7 @@ def main():
                 config["nt"] = int((1/config["sbt"] - 1/config["ebt"])/sol_neg)
                 betas = np.linspace(1/config["ebt"], 1/config["sbt"], config["nt"])
                 betas = np.ascontiguousarray(betas)
-                np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config["sbt"]}_ebt{config["ebt"]}.npy", 1/betas)
+                np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config['sbt']}_ebt{config['ebt']}.npy", 1/betas)
                 
             q25, q75 = np.percentile(flat_E, [25, 75])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
