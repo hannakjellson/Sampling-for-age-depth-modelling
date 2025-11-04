@@ -26,7 +26,7 @@ void hmc(
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
-    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name)
+    const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name, bool shared_bias)
 {
     bool umbrella_bias = !(num_lambda == -1);
     bool temp_bias = !(num_temps == -1);
@@ -78,9 +78,55 @@ void hmc(
         inv_D18O_var[i] = 1.0 / (D18O_sigma[i] * D18O_sigma[i]);
     }
 
-#pragma omp parallel for
-    for (int i = 0; i < num_chains; i++)
+    double delta_F_denominator_sum;
+    double max_delta_F_denominator_sum_term;
+    int total = (int)pow(num_lambda, num_pcs) * num_temps;
+    double max_delta_F_nominator_sum_term[total];
+    double delta_F_nominator_sum[total];
+    double delta_F[total];
+    FILE *deltaF_out;
+
+    if (unified && shared_bias)
     {
+        delta_F_denominator_sum = 1;
+        max_delta_F_denominator_sum_term = 0;
+        for (int i = 0; i < total; i++)
+        {
+            max_delta_F_nominator_sum_term[i] = -INFINITY;
+            delta_F_nominator_sum[i] = 0;
+            delta_F[i] = 0;
+        }
+    }
+
+    omp_lock_t deltaF_lock;
+    omp_init_lock(&deltaF_lock);
+
+    if (unified && shared_bias)
+    {
+        char fname[PATH_MAX];
+        char resolved_path[PATH_MAX];
+
+        // Get the directory of this source file at compile time
+        char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
+        char *dir = dirname(src_dir);     // get the directory part
+
+        // Build the relative path
+        snprintf(fname, sizeof(fname), "%s/../../../../output/%s/%s/%s/deltaF.bin",
+                 dir, data_name, config_find_min_str, config_str);
+
+        // --- Open file for writing ---
+        remove(fname);
+        deltaF_out = fopen(fname, "wb");
+        if (!deltaF_out)
+        {
+            fprintf(stderr, "Error: could not open %s for writing\n", fname);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+#pragma omp parallel num_threads(num_chains)
+    {
+        int i = omp_get_thread_num();
         double Z = 1.0; // For rethinking
         const gsl_rng_type *T;
         gsl_rng *r;
@@ -120,33 +166,62 @@ void hmc(
         int end_index[MAX_NBR_PC];
         double CV_point_plus_dist_sigma;
         double CV_point_minus_dist_sigma;
-        double delta_F[(int)pow(num_lambda, num_pcs) * num_temps];
-        double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps];
-        double delta_F_denominator_sum;
-        double max_delta_F_denominator_sum_term;
-        double max_delta_F_nominator_sum_term[(int)pow(num_lambda, num_pcs) * num_temps];
-        FILE *deltaF_out;
+
+        double delta_F_denominator_sum_local;
+        double max_delta_F_denominator_sum_term_local;
+        double *max_delta_F_nominator_sum_term_local;
+        double *delta_F_nominator_sum_local;
+        double *delta_F_local;
+        FILE *deltaF_out_local;
+
+        if (shared_bias)
+        {
+            delta_F_denominator_sum_local = delta_F_denominator_sum;
+            max_delta_F_denominator_sum_term_local = max_delta_F_denominator_sum_term;
+            delta_F_local = delta_F;
+            delta_F_nominator_sum_local = delta_F_nominator_sum;
+            max_delta_F_nominator_sum_term_local = max_delta_F_nominator_sum_term;
+            deltaF_out_local = deltaF_out;
+        }
+        else
+        {
+            delta_F_local = malloc(total * sizeof(double));
+            delta_F_nominator_sum_local = malloc(total * sizeof(double));
+            max_delta_F_nominator_sum_term_local = malloc(total * sizeof(double));
+            delta_F_denominator_sum_local = 1;
+            max_delta_F_denominator_sum_term_local = 0;
+
+            for (int i = 0; i < total; i++)
+            {
+                max_delta_F_nominator_sum_term_local[i] = -INFINITY;
+                delta_F_nominator_sum_local[i] = 0;
+                delta_F_local[i] = 0;
+            }
+        }
 
         if (unified)
         {
-            char fname[PATH_MAX];
-            char resolved_path[PATH_MAX];
-
-            // Get the directory of this source file at compile time
-            char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
-            char *dir = dirname(src_dir);     // get the directory part
-
-            // Build the relative path
-            snprintf(fname, sizeof(fname), "%s/../../../../output/%s/%s/%s/deltaF_chain%d.bin",
-                     dir, data_name, config_find_min_str, config_str, i);
-
-            // --- Open file for writing ---
-            remove(fname);
-            deltaF_out = fopen(fname, "wb");
-            if (!deltaF_out)
+            if (!shared_bias)
             {
-                fprintf(stderr, "Error: could not open %s for writing\n", fname);
-                continue;
+                char fname[PATH_MAX];
+                char resolved_path[PATH_MAX];
+
+                // Get the directory of this source file at compile time
+                char *src_dir = strdup(__FILE__); // duplicate __FILE__ string
+                char *dir = dirname(src_dir);     // get the directory part
+
+                // Build the relative path
+                snprintf(fname, sizeof(fname), "%s/../../../../output/%s/%s/%s/deltaF_chain%d.bin",
+                         dir, data_name, config_find_min_str, config_str, i);
+
+                // --- Open file for writing ---
+                remove(fname);
+                deltaF_out_local = fopen(fname, "wb");
+                if (!deltaF_out_local)
+                {
+                    fprintf(stderr, "Error: could not open %s for writing\n", fname);
+                    exit(EXIT_FAILURE);
+                }
             }
             num_lambda_2 = (num_pcs == 2) ? num_lambda : 1;
         }
@@ -241,29 +316,24 @@ void hmc(
 
         if (unified)
         {
-            delta_F_denominator_sum = 1.0;
-            max_delta_F_denominator_sum_term = 0;
-            double umbrella_term_i;
-            double umbrella_term_j;
-            double temp_term;
-            for (int lambda_index = 0; lambda_index < num_lambda; lambda_index++)
+            for (int m = 0; m < num_chains; m++) // Ugly but seems to yield deterministic results.
             {
-                umbrella_term_i = umbrella_bias ? pow(CV_point[0] - gaussian_centers[lambda_index], 2) / (2 * bias_sigma_2) : 0;
-                for (int lambda_index2 = 0; lambda_index2 < num_lambda_2; lambda_index2++)
+#pragma omp barrier
+                if (i == m && ((shared_bias && i == 0) || !shared_bias))
                 {
-                    umbrella_term_j = (umbrella_bias && num_pcs == 2) ? pow(CV_point[1] - gaussian_centers[lambda_index2], 2) / (2 * bias_sigma_2) : 0;
-                    for (int temp_index = 0; temp_index < num_temps; temp_index++)
-                    {
-                        temp_term = temp_bias ? (betas[temp_index] - beta0) * energy : 0;
-                        max_delta_F_nominator_sum_term[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = -(umbrella_term_i + umbrella_term_j + temp_term);
-                        delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = 1;
-                        delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] - log(delta_F_nominator_sum[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index]);
-                        if (delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] >= dE)
-                        {
-                            delta_F[lambda_index * num_lambda_2 * num_temps + lambda_index2 * num_temps + temp_index] = dE;
-                        }
-                    }
+                    update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, 0.0, umbrella_bias, temp_bias);
                 }
+
+#pragma omp barrier
+                if (i == m && shared_bias && i != 0)
+                {
+                    omp_set_lock(&deltaF_lock);
+                    delta_F_denominator_sum_local += 1;
+                    printf("dF %f\n", delta_F[1]);
+                    update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, 0.0, umbrella_bias, temp_bias);
+                    omp_unset_lock(&deltaF_lock);
+                }
+#pragma omp barrier
             }
         }
 
@@ -315,7 +385,7 @@ void hmc(
                 {
                     if (!temp_bias)
                         memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
-                    bias_old = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias);
+                    bias_old = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias);
                 }
                 else if (rethinking)
                 {
@@ -345,7 +415,7 @@ void hmc(
 
                 if (unified)
                 {
-                    grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                    grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                 }
 
                 if (rethinking)
@@ -419,7 +489,7 @@ void hmc(
                     }
                     if (unified)
                     {
-                        grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
+                        grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                     }
 
                     if (rethinking)
@@ -450,7 +520,7 @@ void hmc(
                 }
                 if (unified)
                 {
-                    bias_new = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_new, bias_sigma, bias_sigma_2, delta_F, start_index, end_index, umbrella_bias, temp_bias);
+                    bias_new = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_new, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias);
                 }
 
                 else if (rethinking)
@@ -532,21 +602,32 @@ void hmc(
 
             if (unified)
             {
-                if (bias_new > max_delta_F_denominator_sum_term)
+                for (int m = 0; m < num_chains; m++)
                 {
-                    delta_F_denominator_sum *= exp(max_delta_F_denominator_sum_term - bias_new);
-                    max_delta_F_denominator_sum_term = bias_new;
+#pragma omp barrier
+                    if (m == i)
+                    {
+                        omp_set_lock(&deltaF_lock);
+                        if (bias_new > max_delta_F_denominator_sum_term_local)
+                        {
+                            delta_F_denominator_sum_local *= exp(max_delta_F_denominator_sum_term_local - bias_new);
+                            max_delta_F_denominator_sum_term_local = bias_new;
+                        }
+                        delta_F_denominator_sum_local += exp(bias_new - max_delta_F_denominator_sum_term_local);
+                        update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, bias_new, umbrella_bias, temp_bias);
+                        omp_unset_lock(&deltaF_lock);
+                    }
+#pragma omp barrier
                 }
-                delta_F_denominator_sum += exp(bias_new - max_delta_F_denominator_sum_term);
-                update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum, delta_F_denominator_sum, max_delta_F_nominator_sum_term, max_delta_F_denominator_sum_term, delta_F, bias_new, umbrella_bias, temp_bias);
-                if (l % 10000 == 0)
+                if (l % 100 == 0 && (!shared_bias || (shared_bias && i == 0)))
                 {
-                    size_t written = fwrite(delta_F, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out);
+                    size_t written = fwrite(delta_F_local, sizeof(double), num_lambda * num_lambda_2 * num_temps, deltaF_out_local);
                     if (written != (size_t)(num_lambda * num_lambda_2 * num_temps))
                     {
                         fprintf(stderr, "Error writing data");
                     }
                 }
+#pragma omp barrier
             }
 
             if (rethinking)
@@ -564,9 +645,14 @@ void hmc(
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
-        if (unified)
+        if (unified && !shared_bias)
         {
-            fclose(deltaF_out);
+            fclose(deltaF_out_local);
         }
     }
+    if (unified && shared_bias)
+    {
+        fclose(deltaF_out);
+    }
+    omp_destroy_lock(&deltaF_lock);
 }

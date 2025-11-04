@@ -125,7 +125,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
         config["dt"] = 0.007                                                                  # Step size
-        config["ns"] = 100                                                                  # Number of samples
+        config["ns"] = 1000000                                                                  # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 10                                                                    # Number of Leapfrog steps
         config["nHMC"] = 10                                                                   # Number of HMC steps between sampling
@@ -134,6 +134,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["b"] = 0.21                                                                    # Gamma prior rate
         config["sd"] = 42
         config["rsp"] = False
+        config["shb"] = True
                 
         if cap:                   
             config["ces"] = 0.01                                                               # Cap energy scaling
@@ -145,13 +146,13 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
             if bias !="": 
                 if bias == "unified":  
                     if temp:       
-                        config["unb"] = True
-                        config["ai"] = False
+                        config["unb"] = False
+                        config["ai"] = True
                         if not config["ai"]:               
                             config["sbt"] = 1                                                     # Starting value for temp bias
                             config["ebt"] = 5                                                    # End value for temp bias
                             if not config["unb"]:
-                                config["nt"] = 5                                                     # Number of temperatures
+                                config["nt"] = 10                                                     # Number of temperatures
                                 config["ut"] = False
                     if umbrella:
                         config["s"] = 0.4                                                                   # Bias sigma
@@ -170,7 +171,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["hmc"] = True 
         config["sd"] = 42
         if config["hmc"]:
-            config["ns"] = 100
+            config["ns"] = 10000
             config["dt"] = 0.005                                                                  # Step size
             config["ndt"] = 10                                                                    # Number of Leapfrog steps
             config["nHMC"] = 10                                                                   # Number of HMC steps between sampling

@@ -61,6 +61,7 @@ def define_c_types(lib):
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
+        ctypes.c_bool,
     ]
 
     lib.hmc.restype = None
@@ -167,15 +168,14 @@ def main():
             indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
             sp = candidate_samples[indices]
             sp_energies = candidate_E[indices]
-            print(sp_energies)
 
         else:
             sp = sp[energy_idx, :]
             energies = energies[energy_idx]
             sp_energies = energies[:config["nch"]]
             sp = sp[:config["nch"], :]
-    print(sp_energies)
-    print(sp)
+    # print(sp_energies)
+    # print(sp)
 
     if not config["unb"]:
         temps = np.empty((1))
@@ -184,7 +184,7 @@ def main():
             temps = np.load(outdir_start_temps)
             config["nt"] = len(temps)
         elif temp and not config["ai"] and not config["unb"]:
-            factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1)
+            factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1) if config["nt"] != 1 else 0
             if config["ut"]:
                 temps = config["sbt"] + (factor * (config["ebt"] - config["sbt"]))
             else:
@@ -253,6 +253,7 @@ def main():
         config_str_input,
         config_find_min_str_input,
         data_name_input,
+        ctypes.c_bool(config["shb"])
     )
 
     samples = np.ctypeslib.as_array(samples_out)
@@ -276,7 +277,11 @@ def main():
 
     weights = np.exp(bias_values)
     for i in range(config["nch"]):
-        weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
+        if not config["shb"]:
+            weights_i = weights[i, cutout:] / sum(weights[i, cutout:])
+        else:
+            weights_i = weights[i, cutout:] / sum(weights[:, cutout:])
+            weights_i /= sum(weights_i)
         indices = np.random.choice(
             np.arange(cutout, len(weights_i) + cutout),
             size=int(len(weights_i)),
@@ -286,7 +291,6 @@ def main():
         print(f"Chain {i} done resampling")
         resampled_samples.append(samples[i, indices, :])
             
-
     resampled_samples = np.array(resampled_samples)
     outdir_resamp = output_dir / "resamp.npy"
     np.save(outdir_resamp, resampled_samples)
