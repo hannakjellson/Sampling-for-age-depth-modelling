@@ -76,7 +76,7 @@ def main():
     config, config_str = get_hmc_config(find_min = False, bias = bias, cap = cap, temp = temp, umbrella = umbrella)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
-    data_name = "dayu13A"
+    data_name = "dayu06"
     data = get_data(data_name)
     np.random.seed(config["sd"])
 

@@ -86,6 +86,7 @@ def define_c_types_hmc(lib):
         ctypes.c_char_p,
         ctypes.c_char_p,
         ctypes.c_char_p,
+        ctypes.c_bool,
     ]
 
     lib.hmc.restype = None
@@ -94,7 +95,7 @@ def define_c_types_hmc(lib):
 
 
 def main():
-    data_name = "dayu13A"
+    data_name = "dayu06"
     data = get_data(data_name)
     config, config_str = get_hmc_config(find_min = True)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
@@ -164,6 +165,7 @@ def main():
     # Convert outputs to numpy
     energies = np.ctypeslib.as_array(Eout)
     samples = np.ctypeslib.as_array(samples_out).reshape(config["nlsp"], config["N"])
+    print(energies)
 
     outdir_samples = path / "samples_min.npy"
     outdir_Emin = path / "Emin.npy"
@@ -237,6 +239,7 @@ def main():
         config_str_input,
         config_find_min_str_input,
         data_name_input,
+        ctypes.c_bool(False),
     )
 
     # Convert outputs to numpy
