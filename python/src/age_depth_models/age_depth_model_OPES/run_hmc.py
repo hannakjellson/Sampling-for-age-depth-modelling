@@ -185,7 +185,7 @@ def main():
     # print(sp_energies)
     # print(sp)
 
-    if not config["unb"]:
+    if not np.isnan(config["unb"]) and config["unb"]:
         temps = np.empty((1))
         if not np.isnan(config["ai"]) and config["ai"]:
             outdir_start_temps = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"start_Ts.npy"
