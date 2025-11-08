@@ -150,7 +150,7 @@ def main():
             sp = np.load(outdir_start_samples)
 
             flat_E = sp_energies.flatten()
-            flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
+            # flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
             if config["unb"]:
                 def n_eff(beta):
@@ -162,13 +162,17 @@ def main():
                 betas = np.ascontiguousarray(betas)
                 np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config['sbt']}_ebt{config['ebt']}.npy", 1/betas)
                 
-            q25, q75 = np.percentile(flat_E, [25, 75])
-            candidate_mask = (flat_E >= q25) & (flat_E <= q75)
-            candidate_E = flat_E[candidate_mask]
-            candidate_samples = flat_samples[candidate_mask]
-            indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
-            sp = candidate_samples[indices]
-            sp_energies = candidate_E[indices]
+            # q25, q75 = np.percentile(flat_E, [25, 75])
+            # candidate_mask = (flat_E >= q25) & (flat_E <= q75)
+            # candidate_E = flat_E[candidate_mask]
+            # candidate_samples = flat_samples[candidate_mask]
+            # indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
+            # sp = candidate_samples[indices]
+            # sp_energies = candidate_E[indices]
+            sp = sp[energy_idx, :]
+            energies = energies[energy_idx]
+            sp_energies = energies[:config["nch"]]
+            sp = sp[:config["nch"], :]
 
         else:
             sp = sp[energy_idx, :]
