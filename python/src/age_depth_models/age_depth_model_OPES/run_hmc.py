@@ -136,13 +136,13 @@ def main():
     pcs = np.ascontiguousarray(pcs.T) if not np.isnan(config["npc"]) else np.ascontiguousarray(eigenvectors[:, 0].T)
     
     # Starting points and energies
-    if config["rsp"]:
+    if not np.isnan(config["rsp"]) and config["rsp"]:
         sp = np.random.gamma(config["a"], scale=1/config["b"], size=(config["nch"], config["N"]))
         sp_energies = np.zeros_like(energies)[:config["nch"]] # Doesnt make sense to run with random starting points and cap anyway.
         output_dir = base_dir / f"seed{config['sd']}/{config_str}"
         np.save(Path(base_dir / f"../../../../output/{data_name}/seed{config['sd']}" / "starting_points.npy").resolve(), sp)
     else:
-        if(config_find_min["hmc"]):
+        if(not np.isnan(config_find_min["hmc"]) and config["hmc"]):
             outdir_startE = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"{config_find_min_str}" / "start_energies.npy"
             outdir_start_samples = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"{config_find_min_str}" / "start_samples.npy"
             
@@ -152,7 +152,7 @@ def main():
             flat_E = sp_energies.flatten()
             # flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
-            if config["unb"]:
+            if not np.isnan(config["unb"]) and config["unb"]:
                 def n_eff(beta):
                     weights = np.exp(-(beta - 1)*flat_E)
                     return np.sum(weights)**2 - 0.5 * len(weights) * np.sum(weights**2)
@@ -182,15 +182,15 @@ def main():
     # print(sp_energies)
     # print(sp)
 
-    if not config["unb"]:
+    if not np.isnan(config["unb"]) and config["unb"]:
         temps = np.empty((1))
-        if config["ai"]:
+        if not np.isnan(config["ai"]) and config["ai"]:
             outdir_start_temps = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"start_Ts.npy"
             temps = np.load(outdir_start_temps)
             config["nt"] = len(temps)
         elif temp and not config["ai"] and not config["unb"]:
             factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1) if config["nt"] != 1 else 0
-            if config["ut"]:
+            if not np.isnan(config["ut"]) and config["ut"]:
                 temps = config["sbt"] + (factor * (config["ebt"] - config["sbt"]))
             else:
                 temps = config["sbt"] * ((config["ebt"] / config["sbt"])**factor)
