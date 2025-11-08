@@ -22,7 +22,7 @@
 void hmc(
     int N, int num_dt, int num_HMC, int num_chains, int num_samples, int num_lambda, int num_temps, int num_pcs,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
-    double bias_sigma, double a, double b, double theta, double dE, double startbias, double endbias,
+    double bias_sigma, double a, double b, double theta, double beta, double dE, double startbias, double endbias,
     double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
@@ -292,7 +292,7 @@ void hmc(
                       variables, D18O_depth_indices, D18O_expected_ages);
         if (temp_bias)
         {
-            energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
+            energy = energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                      c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
 
             if (cap)
@@ -369,7 +369,7 @@ void hmc(
                 }
                 memcpy(momentum_init, momentum, N * sizeof(double));
 
-                energy_old = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
+                energy_old = energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                              c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
                 if (cap)
                 {
@@ -397,7 +397,7 @@ void hmc(
                 logp_old = energy_old + bias_old;
                 // printf("logp %f, chain %d\n", logp_old, i);
                 // Compute gradient at old state
-                grad_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
+                grad_energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths,
                                      num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                      D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
                 if (cap)
@@ -459,7 +459,7 @@ void hmc(
 
                     if (temp_bias || cap)
                     {
-                        energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
+                        energy = energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                                  c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
                         if (cap)
                         {
@@ -471,7 +471,7 @@ void hmc(
                         }
                     }
 
-                    grad_energy_function(N, delta_c, cs, a, b, theta, num_c14_depths,
+                    grad_energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths,
                                          num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                          D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
 
@@ -507,7 +507,7 @@ void hmc(
                 {
                     momentum[n] -= (unified || rethinking) ? 0.5 * dt * (gradient[n] + bias_gradient[n]) : 0.5 * dt * gradient[n];
                 }
-                energy_new = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
+                energy_new = energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                              c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
                 if (cap)
                 {

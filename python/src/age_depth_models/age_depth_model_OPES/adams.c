@@ -103,7 +103,7 @@ void adams(int N, double delta_c, const double *cs, double a, double b, double t
                           variables, c14_depth_indices, c14_expected_ages);
             expected_ages(N, delta_c, cs, theta, num_D18O_depths, D18O_depths,
                           variables, D18O_depth_indices, D18O_expected_ages);
-            double energy = energy_function(N, delta_c, cs, a, b, theta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
+            double energy = energy_function(N, delta_c, cs, a, b, theta, 1, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
             if (j % 10000 == 0)
             {
                 printf("%d, %d, %f\n", i, j, energy);
@@ -117,7 +117,7 @@ void adams(int N, double delta_c, const double *cs, double a, double b, double t
                 }
             }
 
-            stoch_grad_energy_function(N, num_d18O_points_stoch, random_indices_for_stoch_d18O, delta_c, cs, a, b, theta, num_c14_depths,
+            stoch_grad_energy_function(N, num_d18O_points_stoch, random_indices_for_stoch_d18O, delta_c, cs, a, b, theta, 1, num_c14_depths,
                                        num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma, c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma,
                                        D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables, gradient);
 

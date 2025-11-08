@@ -31,6 +31,7 @@ def define_c_types(lib):
         ctypes.c_double,  # a
         ctypes.c_double,  # b
         ctypes.c_double,  # theta
+        ctypes.c_double,  # beta
         ctypes.c_double,  # dE
         ctypes.c_double,  # startbias
         ctypes.c_double,  # endbias
@@ -223,6 +224,7 @@ def main():
         ctypes.c_double(config["a"]),
         ctypes.c_double(config["b"]),
         ctypes.c_double(data["theta"]),
+        ctypes.c_double(config["bt"] if not np.isnan(config["bt"]) else 1.0),
         ctypes.c_double(config["dE"]),
         ctypes.c_double(config["sb"]),
         ctypes.c_double(config["eb"]),

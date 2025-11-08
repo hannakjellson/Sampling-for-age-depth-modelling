@@ -74,7 +74,7 @@ void expected_ages(
 }
 
 double energy_function(
-    int N, double delta_c, const double *cs, double a, double b, double theta,
+    int N, double delta_c, const double *cs, double a, double b, double theta, double beta,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int c14_depth_indices[num_c14_depths], double inv_c14_var[num_c14_depths], double c14_expected_ages[num_c14_depths], const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     int D18O_depth_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double expected_D18O_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates)
@@ -107,11 +107,11 @@ double energy_function(
         double diff = D18O[i] - D18O_reference_interp[i];
         D18O_conditional += inv_D18O_var[i] * diff * diff / 2;
     }
-    return prior + c14_conditional + D18O_conditional;
+    return (prior + c14_conditional + D18O_conditional) * beta;
 }
 
 void grad_energy_function(
-    int N, double delta_c, const double *cs, double a, double b, double theta,
+    int N, double delta_c, const double *cs, double a, double b, double theta, double beta,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int c14_indices[num_c14_depths], double inv_c14_var[num_c14_depths], double expected_c14_ages[num_c14_depths], const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     int D18O_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double expected_D18O_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double gradient[N])
@@ -158,7 +158,7 @@ void grad_energy_function(
                 grad -= diff * D18O_interp_derivative[i] * f_l * sed_rates[l] * inv_D18O_var[i];
             }
         }
-        gradient[l] = grad;
+        gradient[l] = grad * beta;
         // printf("gradient in function %f\n", grad);
     }
 }
@@ -341,7 +341,7 @@ void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int n
 }
 
 void stoch_grad_energy_function(
-    int N, int num_D18O_indices_stoch, int *D18O_indices_stoch, double delta_c, const double *cs, double a, double b, double theta,
+    int N, int num_D18O_indices_stoch, int *D18O_indices_stoch, double delta_c, const double *cs, double a, double b, double theta, double beta,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int c14_indices[num_c14_depths], double inv_c14_var[num_c14_depths], double c14_expected_ages[num_c14_depths], const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     int D18O_indices[num_D18O_depths], double inv_D18O_var[num_D18O_depths], double D18O_expected_ages[num_D18O_depths], const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double gradient[N])
@@ -389,7 +389,7 @@ void stoch_grad_energy_function(
                 grad -= (num_D18O_depths / num_D18O_indices_stoch) * diff * D18O_interp_derivative[ind] * f_l * sed_rates[l] * inv_D18O_var[ind];
             }
         }
-        gradient[l] = grad;
+        gradient[l] = grad * beta;
     }
 }
 
