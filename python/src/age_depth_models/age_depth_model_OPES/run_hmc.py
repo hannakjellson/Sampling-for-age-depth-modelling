@@ -153,7 +153,7 @@ def main():
             sp = np.load(outdir_start_samples)
 
             flat_E = sp_energies.flatten()
-            # flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
+            flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
             if not np.isnan(config["unb"]) and config["unb"]:
                 def n_eff(beta):
@@ -165,17 +165,30 @@ def main():
                 betas = np.ascontiguousarray(betas)
                 np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config['sbt']}_ebt{config['ebt']}.npy", 1/betas)
                 
-            # q25, q75 = np.percentile(flat_E, [25, 75])
-            # candidate_mask = (flat_E >= q25) & (flat_E <= q75)
-            # candidate_E = flat_E[candidate_mask]
-            # candidate_samples = flat_samples[candidate_mask]
-            # indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
-            # sp = candidate_samples[indices]
-            # sp_energies = candidate_E[indices]
-            sp = sp[energy_idx, :]
-            energies = energies[energy_idx]
-            sp_energies = energies[:config["nch"]]
-            sp = sp[:config["nch"], :]
+            # sp_new = []
+            # sp_energies_new = []
+            np.random.seed(config["sd"])
+
+            # for i in range(config["nch"]):
+            #     flat_E = sp_energies[i, :]
+            #     flat_samples = sp[i, :, :]
+
+            q25, q75 = np.percentile(flat_E, [25, 75])
+            candidate_mask = (flat_E >= q25) & (flat_E <= q75)
+            candidate_E = flat_E[candidate_mask]
+            candidate_samples = flat_samples[candidate_mask, :]
+            indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
+            sp = candidate_samples[indices, :]
+            sp_energies = candidate_E[indices]
+            # sp_new.append(sp_chain)
+            # sp_energies_new.append(sp_energies_chain)
+            sp = np.array(sp)
+            sp_energies = np.array(sp_energies)
+            print(sp_energies)
+            # sp = sp[energy_idx, :]
+            # energies = sp_energies[energy_idx]
+            # sp_energies = energies[:config["nch"]]
+            # sp = sp[:config["nch"], :]
 
         else:
             sp = sp[energy_idx, :]
@@ -185,7 +198,7 @@ def main():
     # print(sp_energies)
     # print(sp)
 
-    if not np.isnan(config["unb"]) and config["unb"]:
+    if not config["unb"]:
         temps = np.empty((1))
         if not np.isnan(config["ai"]) and config["ai"]:
             outdir_start_temps = Path(__file__).resolve().parent / "../../../../output" / f"{data_name}" / f"start_Ts.npy"

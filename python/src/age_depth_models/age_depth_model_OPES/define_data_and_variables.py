@@ -124,7 +124,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["H"] = 100                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.0005                                                                 # Step size
+        config["dt"] = 0.0015                                                                 # Step size
         config["ns"] = 10000                                                                  # Number of samples
         config["co"] = 10                                                                     # Cutout
         config["ndt"] = 100                                                                    # Number of Leapfrog steps
@@ -132,7 +132,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["nch"] = 5                                                                     # Number of chains
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
-        config["sd"] = 42
+        config["sd"] = 39
         config["rsp"] = False
         config["shb"] = True
                 
@@ -150,7 +150,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                         config["ai"] = False
                         if not config["ai"]:               
                             config["sbt"] = 1                                                     # Starting value for temp bias
-                            config["ebt"] = 10                                                    # End value for temp bias
+                            config["ebt"] = 3                                                    # End value for temp bias
                             if not config["unb"]:
                                 config["nt"] = 20                                                     # Number of temperatures
                                 config["ut"] = True
@@ -167,16 +167,16 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                     config["g"] = 40                                                          # Scaling parameter
                     config["thr"] = config["s"] / 2                                           # Threshold for merging
                     config["npc"] = 1                                                         # Number of collective variables (pcs)
-            else: 
-                config["bt"] = 1.0                                                       
+        else: 
+            config["bt"] = 1                                                       
     else:   
         config["hmc"] = True 
-        config["sd"] = 42
+        config["sd"] = 39
         config["bt"] = 1
         if config["hmc"]:
-            config["ns"] = 100
-            config["dt"] = 0.0005                                                                  # Step size
-            config["ndt"] = 1000                                                                    # Number of Leapfrog steps
+            config["ns"] = 1000
+            config["dt"] = 0.001                                                                  # Step size
+            config["ndt"] = 100                                                                    # Number of Leapfrog steps
             config["nHMC"] = 1                                                                   # Number of HMC steps between sampling
 
         config["N"] = 50                                                                      # Number of variables
@@ -187,8 +187,8 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["b"] = 0.21                                                                    # Gamma prior rate
                 
         # For find_min_energy                     
-        config["nlsp"] = 5                                                                  # Number of starting points
-        config["mi"] = 100000                                                                 # Maximum number of iterations
+        config["nlsp"] = 100                                                                  # Number of starting points
+        config["mi"] = 10000                                                                 # Maximum number of iterations
         config["adt"] = 0.00001                                                               # Adams stepsize
         config["gl"] = 0.00001                                                                # Gradient limit
                         
