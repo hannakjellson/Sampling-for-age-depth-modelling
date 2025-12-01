@@ -1,0 +1,42 @@
+import numpy as np
+
+from matplotlib import pyplot as plt
+
+from reweighting import weights
+from inference_loop import NUM_TEMPS, BETAS
+
+n_eff_lambda = np.sum(weights, axis=1)**2 / np.sum(weights**2, axis=1)
+n_eff_lambda /= weights.shape[1]
+target = 1 / NUM_TEMPS
+
+fig, ax = plt.subplots(
+    1, 1,
+    figsize=(13, 6),
+)
+for it in range(4):
+    ax.plot(
+        BETAS,
+        n_eff_lambda[it],
+        label=f'Chain #{it+1}',
+    )
+
+ax.axhline(target, color='grey', label='Target', ls='--')
+
+
+ax.set_xscale('log')
+ax.set_xlabel('beta')
+ax.set_yscale('log')
+ax.set_ylabel(r'$n_\text{eff} / n$')
+
+ax.legend(frameon=False)
+
+fig.tight_layout()
+
+fig.savefig(
+    f"../../../../pics/2d_example_unified_temp_pymc/neff_diag.jpg",
+    bbox_inches='tight',
+    pad_inches=0.05,
+    dpi=300,
+)
+
+plt.show()
