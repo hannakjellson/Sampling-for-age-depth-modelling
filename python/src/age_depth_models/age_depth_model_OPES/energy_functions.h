@@ -33,13 +33,4 @@ void stoch_grad_energy_function(
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, int *c14_indices, double *inv_c14_var, double *c14_expected_ages, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     int *D18O_indices, double *inv_D18O_var, double *D18O_expected_ages, const double *D18O_reference, const double *D18O_reference_times, const double *sed_rates, double *gradient);
-
-double bias_potential_r(double CV_point, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights, double Z, double DeltaE);
-
-void grad_bias_r(int N, double delta_c, const double *pc1, double CV_point, double *variables, double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights, double Z, double dE, double *gradient);
-
-void deposit_gaussian(double CV_point, double width, double *bias_centers, double *bias_heights, double *bias_widths, double *kernel_weights, double current_weight, double *sum_squared_weights, int *bias_count, double distance_threshold, int max_bias);
-
-double compute_Zn(double *bias_centers, double *bias_heights, double *bias_widths, int bias_count, double *kernel_weights, double gamma, double sum_weights);
-
 #endif

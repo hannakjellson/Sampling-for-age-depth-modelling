@@ -116,62 +116,52 @@ def get_data(name):
     return data
 
 
-def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbrella = False):
-    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "g", "thr", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc", "hmc", "hmcns", "ut", "rsp", "sd", "unb", "ai", "bt"]
+def get_hmc_config(find_min = False, cap = False, temp = False, umbrella = False):
+    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc", "hmc", "hmcns", "ut", "rsp", "sd", "unb", "ai", "bt"]
     config=dict.fromkeys(keys)
     if not find_min:
         config["N"] = 50                                                                      # Number of variables
         config["H"] = 100                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.0015                                                                 # Step size
-        config["ns"] = 10000                                                                  # Number of samples
-        config["co"] = 10                                                                     # Cutout
-        config["ndt"] = 100                                                                    # Number of Leapfrog steps
+        config["dt"] = 0.001                                                                 # Step size
+        config["ns"] = 100                                                                  # Number of samples
+        config["co"] = 0                                                                     # Cutout
+        config["ndt"] = 700                                                                    # Number of Leapfrog steps
         config["nHMC"] = 1                                                                   # Number of HMC steps between sampling
-        config["nch"] = 5                                                                     # Number of chains
+        config["nch"] = 5                                                                    # Number of chains
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
-        config["sd"] = 39
+        config["sd"] = 42
         config["rsp"] = False
-        config["shb"] = True
-                
-        if cap:                   
-            config["ces"] = 0.01                                                               # Cap energy scaling
-            config["cw"] = 40                                                                # Cap width
-        
-        if bias !="":                     
-            config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
-                
-            if bias !="": 
-                if bias == "unified":  
-                    if temp:       
-                        config["unb"] = False
-                        config["ai"] = False
-                        if not config["ai"]:               
-                            config["sbt"] = 1                                                     # Starting value for temp bias
-                            config["ebt"] = 3                                                    # End value for temp bias
-                            if not config["unb"]:
-                                config["nt"] = 20                                                     # Number of temperatures
-                                config["ut"] = True
-                    if umbrella:
-                        config["s"] = 0.4                                                                   # Bias sigma
-                        config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
-                        config["sb"] = -10                                                              # Starting value for umbrella bias
-                        config["eb"] = 10                                                               # End value for umbrella bias 
-                        config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"]))) # Number of umbrellas in each CV direction
-                        config["npc"] = 1                                                               # Number of collective variables (pcs)
+        config["shb"] = False
+        config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
 
-                if bias == "rethinking":
-                    config["s"] = 0.4                                                                   # Bias sigma
-                    config["g"] = 40                                                          # Scaling parameter
-                    config["thr"] = config["s"] / 2                                           # Threshold for merging
-                    config["npc"] = 1                                                         # Number of collective variables (pcs)
-        else: 
-            config["bt"] = 1                                                       
+        if cap:                   
+            config["ces"] = 0.01                                                                # Cap energy scaling
+            config["cw"] = 40                                                                   # Cap width
+                             
+                
+        if temp:       
+            config["unb"] = False
+            config["ai"] = False
+            if not config["ai"]:               
+                config["sbt"] = 1                                                           # Starting value for temp bias
+                config["ebt"] = 3                                                           # End value for temp bias
+                if not config["unb"]:
+                    config["nt"] = 20                                                       # Number of temperatures
+                    config["ut"] = True
+        if umbrella:
+            config["s"] = 0.4                                                               # Bias sigma
+            config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
+            config["sb"] = -10                                                              # Starting value for umbrella bias
+            config["eb"] = 10                                                               # End value for umbrella bias 
+            config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"])))       # Number of umbrellas in each CV direction
+            config["npc"] = 1                                                               # Number of collective variables (pcs)
+                                                     
     else:   
         config["hmc"] = True 
-        config["sd"] = 39
+        config["sd"] = 42
         config["bt"] = 1
         if config["hmc"]:
             config["ns"] = 1000

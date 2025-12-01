@@ -23,21 +23,20 @@ void hmc(
     int N, int num_dt, int num_HMC, int num_chains, int num_samples, int num_lambda, int num_temps, int num_pcs,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double beta, double dE, double startbias, double endbias,
-    double startbias_temp, double endbias_temp, double bias_distance_count, double gamma, double distance_threshold, double cap_energy_scale,
+    double startbias_temp, double endbias_temp, double bias_distance_count, double cap_energy_scale,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name, bool shared_bias)
 {
     bool umbrella_bias = !(num_lambda == -1);
     bool temp_bias = !(num_temps == -1);
-    bool unified = (umbrella_bias || temp_bias);
-    bool rethinking = !isnan(distance_threshold);
+    bool OPES = (umbrella_bias || temp_bias);
     bool cap = !(isnan(cap_energy_scale));
     int num_lambda_2;
 
     double bias_sigma_2;
     double *gaussian_centers = NULL;
-    if (umbrella_bias || rethinking)
+    if (umbrella_bias)
     {
         num_temps = temp_bias ? num_temps : 1;
         bias_sigma_2 = bias_sigma * bias_sigma;
@@ -55,7 +54,7 @@ void hmc(
         num_pcs = umbrella_bias ? num_pcs : 1;
     }
 
-    if (!unified && !rethinking)
+    if (!OPES)
     {
         num_lambda = 1;
         num_pcs = 1;
@@ -86,7 +85,7 @@ void hmc(
     double delta_F[total];
     FILE *deltaF_out;
 
-    if (unified && shared_bias)
+    if (OPES && shared_bias)
     {
         delta_F_denominator_sum = 1;
         max_delta_F_denominator_sum_term = 0;
@@ -101,7 +100,7 @@ void hmc(
     omp_lock_t deltaF_lock;
     omp_init_lock(&deltaF_lock);
 
-    if (unified && shared_bias)
+    if (OPES && shared_bias)
     {
         char fname[PATH_MAX];
         char resolved_path[PATH_MAX];
@@ -199,7 +198,7 @@ void hmc(
             }
         }
 
-        if (unified)
+        if (OPES)
         {
             if (!shared_bias)
             {
@@ -259,7 +258,7 @@ void hmc(
             log_variables[j] = log(variables[j]);
         }
 
-        if (umbrella_bias || rethinking)
+        if (umbrella_bias)
         {
             for (int j = 0; j < num_pcs; j++)
             {
@@ -314,7 +313,7 @@ void hmc(
             }
         }
 
-        if (unified)
+        if (OPES)
         {
             for (int m = 0; m < num_chains; m++) // Ugly but seems to yield deterministic results.
             {
@@ -335,17 +334,6 @@ void hmc(
                 }
 #pragma omp barrier
             }
-        }
-
-        if (rethinking)
-        {
-            weights[0] = exp(-dE);
-            sum_weights += weights[0];
-            sum_squared_weights += weights[0] * weights[0];
-            N_eff = (sum_squared_weights > 0) ? sum_weights * sum_weights / sum_squared_weights : 1;
-            bias_std_j = bias_sigma * pow(N_eff * (N + 2) / 4.0, -1.0 / (N + 4.0));
-            deposit_gaussian(CV_point[0], bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[0], &sum_squared_weights, &bias_count, distance_threshold, MAX_BIAS);
-            Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
         }
 
         for (int l = 0; l < num_samples; l++)
@@ -381,16 +369,11 @@ void hmc(
                     }
                 }
 
-                if (unified)
+                if (OPES)
                 {
                     if (!temp_bias)
                         memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
                     bias_old = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias);
-                }
-                else if (rethinking)
-                {
-                    memcpy(CV_point_init, CV_point, num_pcs * sizeof(double));
-                    bias_old = bias_potential_r(CV_point[0], bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE);
                 }
                 else
                     bias_old = 0;
@@ -413,17 +396,14 @@ void hmc(
                     }
                 }
 
-                if (unified)
+                if (OPES)
                 {
                     grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_old, gradient, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                 }
 
-                if (rethinking)
-                    grad_bias_r(N, delta_c, pcs, CV_point[0], variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
-                // Initial half step for momentum
                 for (int n = 0; n < N; n++)
                 {
-                    momentum[n] -= (unified || rethinking) ? (dt / 2) * (gradient[n] + bias_gradient[n]) : (dt / 2) * gradient[n];
+                    momentum[n] -= (OPES) ? (dt / 2) * (gradient[n] + bias_gradient[n]) : (dt / 2) * gradient[n];
                 }
 
                 // Leapfrog integration
@@ -435,7 +415,7 @@ void hmc(
                         variables[n] = exp(log_variables[n]);
                     }
 
-                    if (umbrella_bias || rethinking)
+                    if (umbrella_bias)
                     {
                         for (int l = 0; l < num_pcs; l++)
                         {
@@ -487,25 +467,22 @@ void hmc(
                             }
                         }
                     }
-                    if (unified)
+                    if (OPES)
                     {
                         grad_bias(N, delta_c, num_pcs, pcs, CV_point, variables, num_lambda, num_temps, gaussian_centers, betas, beta0, energy, gradient, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias, bias_gradient);
                     }
-
-                    if (rethinking)
-                        grad_bias_r(N, delta_c, pcs, CV_point[0], variables, bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE, gradient);
 
                     if (k != num_dt - 1)
                     {
                         for (int n = 0; n < N; n++)
                         {
-                            momentum[n] -= (unified || rethinking) ? dt * (gradient[n] + bias_gradient[n]) : dt * gradient[n];
+                            momentum[n] -= (OPES) ? dt * (gradient[n] + bias_gradient[n]) : dt * gradient[n];
                         }
                     }
                 }
                 for (int n = 0; n < N; n++)
                 {
-                    momentum[n] -= (unified || rethinking) ? 0.5 * dt * (gradient[n] + bias_gradient[n]) : 0.5 * dt * gradient[n];
+                    momentum[n] -= (OPES) ? 0.5 * dt * (gradient[n] + bias_gradient[n]) : 0.5 * dt * gradient[n];
                 }
                 energy_new = energy_function(N, delta_c, cs, a, b, theta, beta, num_c14_depths, num_D18O_depths, num_D18O_reference_times, c14_ages, c14_depths, c14_sigma,
                                              c14_depth_indices, inv_c14_var, c14_expected_ages, D18O, D18O_depths, D18O_sigma, D18O_depth_indices, inv_D18O_var, D18O_expected_ages, D18O_reference, D18O_reference_times, variables);
@@ -518,15 +495,9 @@ void hmc(
                         energy_new = cap_energy + ((energy_new - cap_energy) * ((1 - cap_energy_scale) / (1 + ((energy_new - cap_energy) * (energy_new - cap_energy))) + cap_energy_scale));
                     }
                 }
-                if (unified)
+                if (OPES)
                 {
                     bias_new = bias_potential(num_pcs, CV_point, num_lambda, num_temps, gaussian_centers, betas, beta0, energy_new, bias_sigma, bias_sigma_2, delta_F_local, start_index, end_index, umbrella_bias, temp_bias);
-                }
-
-                else if (rethinking)
-                {
-                    bias_new = bias_potential_r(CV_point[0], bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights, Z, dE);
-                    // printf("before %f\n", bias_new);
                 }
                 else
                     bias_new = 0;
@@ -559,10 +530,10 @@ void hmc(
                     energy_new = energy_old;
                     expected_ages(N, delta_c, cs, theta, num_c14_depths, c14_depths, variables, c14_depth_indices, c14_expected_ages);
                     expected_ages(N, delta_c, cs, theta, num_D18O_depths, D18O_depths, variables, D18O_depth_indices, D18O_expected_ages);
-                    if (unified || rethinking)
+                    if (OPES)
                     {
                         bias_new = bias_old;
-                        if (umbrella_bias || rethinking)
+                        if (umbrella_bias)
                         {
                             for (int l = 0; l < num_pcs; l++)
                             {
@@ -591,7 +562,7 @@ void hmc(
             }
             energy_out[i * num_samples + l] = energy_new;
 
-            if (unified || rethinking)
+            if (OPES)
             {
                 bias_out[i * num_samples + l] = (cap) ? bias_new + energy_new - energy_new_orig : bias_new;
             }
@@ -600,7 +571,7 @@ void hmc(
                 bias_out[i * num_samples + l] = energy_new - energy_new_orig;
             }
 
-            if (unified)
+            if (OPES)
             {
                 for (int m = 0; m < num_chains; m++)
                 {
@@ -629,28 +600,16 @@ void hmc(
                 }
 #pragma omp barrier
             }
-
-            if (rethinking)
-            {
-                weights[l + 1] = exp(bias_new);
-                sum_weights += weights[l + 1];
-                sum_squared_weights += weights[l + 1] * weights[l + 1];
-                N_eff = (sum_squared_weights > 0) ? sum_weights * sum_weights / sum_squared_weights : 1;
-                bias_std_j = bias_sigma * pow(N_eff * (N + 2) / 4.0, -1.0 / (N + 4.0));
-                deposit_gaussian(CV_point[0], bias_std_j, bias_centers, bias_heights, bias_widths, kernel_weights, weights[l + 1], &sum_squared_weights, &bias_count, distance_threshold, MAX_BIAS);
-                // printf("center %f\n", bias_centers[1]);
-                Z = compute_Zn(bias_centers, bias_heights, bias_widths, bias_count, kernel_weights, gamma, sum_weights);
-            }
         }
 
         mean_acceptance /= (num_samples * num_HMC);
         printf("%f\n", mean_acceptance);
-        if (unified && !shared_bias)
+        if (OPES && !shared_bias)
         {
             fclose(deltaF_out_local);
         }
     }
-    if (unified && shared_bias)
+    if (OPES && shared_bias)
     {
         fclose(deltaF_out);
     }

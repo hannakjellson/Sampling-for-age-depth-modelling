@@ -38,8 +38,6 @@ def define_c_types(lib):
         ctypes.c_double,  # startbiastemp
         ctypes.c_double,  # endbiastemp
         ctypes.c_double,  # dist
-        ctypes.c_double,  # gamma
-        ctypes.c_double,  # distance_threshold
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # betas
@@ -70,11 +68,10 @@ def define_c_types(lib):
     return lib
 
 def main():
-    bias = "unified"
     temp = True
     cap = False
     umbrella = False
-    config, config_str = get_hmc_config(find_min = False, bias = bias, cap = cap, temp = temp, umbrella = umbrella)
+    config, config_str = get_hmc_config(find_min = False, cap = cap, temp = temp, umbrella = umbrella)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     data_name = "dayu06"
@@ -251,8 +248,6 @@ def main():
         ctypes.c_double(config["sbt"]),
         ctypes.c_double(config["ebt"]),
         ctypes.c_double(config["d"]),
-        ctypes.c_double(config["g"]),
-        ctypes.c_double(config["thr"]),
         ctypes.c_double(config["ces"]),
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
