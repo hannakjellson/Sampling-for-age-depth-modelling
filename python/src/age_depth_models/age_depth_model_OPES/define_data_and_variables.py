@@ -116,8 +116,8 @@ def get_data(name):
     return data
 
 
-def get_hmc_config(find_min = False, cap = False, temp = False, umbrella = False):
-    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc", "hmc", "hmcns", "ut", "rsp", "sd", "unb", "ai", "bt"]
+def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbrella = False):
+    keys = ["N", "H", "dc", "cs", "dt", "ns", "co", "ndt", "nHMC", "nch", "a", "b", "ces", "cw", "s", "dE", "d", "sb", "eb", "nl", "sbt", "ebt", "nt", "nlsp", "mi", "gl", "npc", "hmc", "ut", "rsp", "sd", "unb", "ai", "bt", "dfs"]
     config=dict.fromkeys(keys)
     if not find_min:
         config["N"] = 50                                                                      # Number of variables
@@ -135,30 +135,34 @@ def get_hmc_config(find_min = False, cap = False, temp = False, umbrella = False
         config["sd"] = 42
         config["rsp"] = False
         config["shb"] = False
-        config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
-
-        if cap:                   
-            config["ces"] = 0.01                                                                # Cap energy scaling
-            config["cw"] = 40                                                                   # Cap width
-                             
                 
-        if temp:       
-            config["unb"] = False
-            config["ai"] = False
-            if not config["ai"]:               
-                config["sbt"] = 1                                                           # Starting value for temp bias
-                config["ebt"] = 3                                                           # End value for temp bias
-                if not config["unb"]:
-                    config["nt"] = 20                                                       # Number of temperatures
-                    config["ut"] = True
-        if umbrella:
-            config["s"] = 0.4                                                               # Bias sigma
-            config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
-            config["sb"] = -10                                                              # Starting value for umbrella bias
-            config["eb"] = 10                                                               # End value for umbrella bias 
-            config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"])))       # Number of umbrellas in each CV direction
-            config["npc"] = 1                                                               # Number of collective variables (pcs)
-                                                     
+        if cap:                   
+            config["ces"] = 0.01                                                               # Cap energy scaling
+            config["cw"] = 40                                                                # Cap width
+        
+        if bias !="":                     
+            config["dE"] = 50                                                                   # Max bias / Approximate size of valleys
+                
+            if bias == "unified":  
+                if temp:       
+                    config["unb"] = False
+                    config["ai"] = False
+                    config["dfs"] = 1000
+                    if not config["ai"]:               
+                        config["sbt"] = 1                                                     # Starting value for temp bias
+                        config["ebt"] = 3                                                    # End value for temp bias
+                        if not config["unb"]:
+                            config["nt"] = 20                                                     # Number of temperatures
+                            config["ut"] = True
+                if umbrella:
+                    config["s"] = 0.4                                                                   # Bias sigma
+                    config["d"] = 40                                                                # Nbr of sigmas to include when computing bias and bias gradient
+                    config["sb"] = -10                                                              # Starting value for umbrella bias
+                    config["eb"] = 10                                                               # End value for umbrella bias 
+                    config["nl"] = (int)(1 + ((config["eb"] - config["sb"]) / (config["s"]))) # Number of umbrellas in each CV direction
+                    config["npc"] = 1                                                               # Number of collective variables (pcs)
+        else: 
+            config["bt"] = 1                                                       
     else:   
         config["hmc"] = True 
         config["sd"] = 42
@@ -196,5 +200,6 @@ def get_hmc_config(find_min = False, cap = False, temp = False, umbrella = False
         elif isinstance(v, int):
             parts.append(f"{k}{v}")
     config_str = "_".join(parts)
+    print(config_str)
 
     return config, config_str

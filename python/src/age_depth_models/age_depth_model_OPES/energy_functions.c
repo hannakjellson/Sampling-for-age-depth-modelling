@@ -298,7 +298,7 @@ void grad_bias(int N, double delta_c, int num_pcs, double pcs[num_pcs * N], doub
     }
 }
 
-void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double max_delta_F_nominator_sum_term[(int)pow(num_lambda, num_pcs) * num_temps], double max_delta_F_denominator_sum_term, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp)
+void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int num_temps, double sigma_2, double dE, double gaussian_centers[num_lambda], double betas[num_temps], double beta0, double energy, double delta_F_nominator_sum[(int)pow(num_lambda, num_pcs) * num_temps], double delta_F_denominator_sum, double max_delta_F_nominator_sum_term[(int)pow(num_lambda, num_pcs) * num_temps], double max_delta_F_denominator_sum_term, double delta_F[(int)pow(num_lambda, num_pcs) * num_temps], double potential, bool umbrella, bool temp, int sample, int dfs)
 {
     double gaussian_diff_i;
     double gaussian_diff_2_i;
@@ -329,11 +329,14 @@ void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int n
                     max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = new_max;
                 }
                 delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] += exp(-(umbrella_term + temp_term) + potential - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
-                delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
-
-                if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] >= dE)
+                if (sample > dfs)
                 {
-                    delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = dE;
+                    delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
+
+                    if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] >= dE)
+                    {
+                        delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = dE;
+                    }
                 }
             }
         }

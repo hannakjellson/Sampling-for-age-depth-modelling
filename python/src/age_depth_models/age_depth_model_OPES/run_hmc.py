@@ -39,6 +39,8 @@ def define_c_types(lib):
         ctypes.c_double,  # endbiastemp
         ctypes.c_double,  # dist
         ctypes.c_double,  # cap_energy_scaling
+        ctypes.c_double,  # energy_exp
+        ctypes.c_int,  # delta_F start update
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
@@ -71,7 +73,7 @@ def main():
     temp = True
     cap = False
     umbrella = False
-    config, config_str = get_hmc_config(find_min = False, cap = cap, temp = temp, umbrella = umbrella)
+    config, config_str = get_hmc_config(find_min = False, bias = "unified", cap = cap, temp = temp, umbrella = umbrella)
     config = {k: (float("nan") if v is None else v) for k, v in config.items()}
 
     data_name = "dayu06"
@@ -150,6 +152,8 @@ def main():
             sp = np.load(outdir_start_samples)
 
             flat_E = sp_energies.flatten()
+            energy_exp = np.mean(flat_E)
+            print(energy_exp)
             flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
             if not np.isnan(config["unb"]) and config["unb"]:
@@ -249,6 +253,8 @@ def main():
         ctypes.c_double(config["ebt"]),
         ctypes.c_double(config["d"]),
         ctypes.c_double(config["ces"]),
+        ctypes.c_double(energy_exp),
+        ctypes.c_int(config["dfs"]),
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
