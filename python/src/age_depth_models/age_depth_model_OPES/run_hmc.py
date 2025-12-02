@@ -41,6 +41,8 @@ def define_c_types(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # energy_exp
         ctypes.c_int,  # delta_F start update
+        ctypes.c_int,  # energies ->len(delta_F_nominator_start)
+        ctypes.POINTER(ctypes.c_double),  # delta_F_nominator_start
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
@@ -216,6 +218,8 @@ def main():
         betas = 1/temps
         betas = np.ascontiguousarray(betas)
 
+    thousand_energies = flat_E[::int((len(flat_E / 1000)))]
+    delta_F_nominator = np.ascontiguousarray(np.sum(np.exp(-(betas[None, :] - betas[0])*thousand_energies[:, None]), axis = 0))
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
@@ -255,6 +259,8 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(energy_exp),
         ctypes.c_int(config["dfs"]),
+        ctypes.c_int(1000), 
+        delta_F_nominator.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
