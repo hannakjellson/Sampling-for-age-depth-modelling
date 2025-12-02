@@ -23,7 +23,7 @@ void hmc(
     int N, int num_dt, int num_HMC, int num_chains, int num_samples, int num_lambda, int num_temps, int num_pcs,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double beta, double dE, double startbias, double endbias,
-    double startbias_temp, double endbias_temp, double bias_distance_count, double cap_energy_scale, double energy_exp, int dfs,
+    double startbias_temp, double endbias_temp, double bias_distance_count, double cap_energy_scale, double energy_exp, int dfs, int len_energies_df, double *delta_F_nominator,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name, bool shared_bias)
@@ -87,13 +87,13 @@ void hmc(
 
     if (OPES && shared_bias)
     {
-        delta_F_denominator_sum = 0;
+        delta_F_denominator_sum = len_energies_df;
         max_delta_F_denominator_sum_term = 0;
         for (int i = 0; i < total; i++)
         {
-            max_delta_F_nominator_sum_term[i] = -INFINITY;
-            delta_F_nominator_sum[i] = 0;
-            delta_F[i] = (betas[i] - beta0) * energy_exp;
+            max_delta_F_nominator_sum_term[i] = 0;
+            delta_F_nominator_sum[i] = delta_F_nominator[i];
+            delta_F[i] = -log(delta_F_nominator_sum[i] / delta_F_denominator_sum); //(betas[i] - beta0) * energy_exp;
         }
     } // I have destroyed something here!
 
@@ -186,14 +186,14 @@ void hmc(
             delta_F_local = malloc(total * sizeof(double));
             delta_F_nominator_sum_local = malloc(total * sizeof(double));
             max_delta_F_nominator_sum_term_local = malloc(total * sizeof(double));
-            delta_F_denominator_sum_local = 0;
+            delta_F_denominator_sum_local = len_energies_df;
             max_delta_F_denominator_sum_term_local = 0;
 
             for (int i = 0; i < total; i++)
             {
-                max_delta_F_nominator_sum_term_local[i] = -INFINITY;
-                delta_F_nominator_sum_local[i] = 0;
-                delta_F_local[i] = (betas[i] - beta0) * energy_exp;
+                max_delta_F_nominator_sum_term_local[i] = 0;
+                delta_F_nominator_sum_local[i] = delta_F_nominator[i];
+                delta_F_local[i] = -log(delta_F_nominator_sum_local[i] / delta_F_denominator_sum_local); //(betas[i] - beta0) * energy_exp;
             }
         }
 

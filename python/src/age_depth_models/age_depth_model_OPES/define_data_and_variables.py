@@ -124,7 +124,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["H"] = 100                                                                     # Sediment depth
         config["dc"] = config["H"] / config["N"]                                              # Segment depth
         config["cs"] = np.linspace(0, config["H"], config["N"] + 1)                           # Segment discretization
-        config["dt"] = 0.001                                                                 # Step size
+        config["dt"] = 0.0005                                                                 # Step size
         config["ns"] = 100                                                                  # Number of samples
         config["co"] = 0                                                                     # Cutout
         config["ndt"] = 700                                                                    # Number of Leapfrog steps
@@ -132,7 +132,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["nch"] = 5                                                                    # Number of chains
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
-        config["sd"] = 42
+        config["sd"] = 40
         config["rsp"] = False
         config["shb"] = False
                 

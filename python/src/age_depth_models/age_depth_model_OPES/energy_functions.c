@@ -329,15 +329,15 @@ void update_delta_F(int num_pcs, double CV_point[num_pcs], int num_lambda, int n
                     max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = new_max;
                 }
                 delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] += exp(-(umbrella_term + temp_term) + potential - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
-                if (sample > dfs)
-                {
-                    delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
+                // if (sample > dfs)
+                // {
+                delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = max_delta_F_denominator_sum_term + log(delta_F_denominator_sum) - max_delta_F_nominator_sum_term[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] - log(delta_F_nominator_sum[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index]);
 
-                    if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] >= dE)
-                    {
-                        delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = dE;
-                    }
+                if (delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] >= dE)
+                {
+                    delta_F[lambda_index * num_lambda2 * num_temps + lambda_index_2 * num_temps + beta_index] = dE;
                 }
+                // }
             }
         }
     }
