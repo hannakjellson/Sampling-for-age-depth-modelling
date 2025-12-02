@@ -218,8 +218,13 @@ def main():
         betas = 1/temps
         betas = np.ascontiguousarray(betas)
 
-    thousand_energies = flat_E[::int((len(flat_E / 1000)))]
+    q0, q25 = np.percentile(flat_E, [0, 75])
+    candidate_mask = (flat_E >= q0) & (flat_E <= q25)
+    flat_E = flat_E[candidate_mask]
+    thousand_energies = flat_E[::int(len(flat_E) / 1000)]
+    print(thousand_energies)
     delta_F_nominator = np.ascontiguousarray(np.sum(np.exp(-(betas[None, :] - betas[0])*thousand_energies[:, None]), axis = 0))
+    print(-np.log(delta_F_nominator / len(thousand_energies)))
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
@@ -259,7 +264,7 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(energy_exp),
         ctypes.c_int(config["dfs"]),
-        ctypes.c_int(1000), 
+        ctypes.c_int(len(thousand_energies)), 
         delta_F_nominator.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
