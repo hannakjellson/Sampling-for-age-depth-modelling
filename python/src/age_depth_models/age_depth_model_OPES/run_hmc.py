@@ -154,7 +154,8 @@ def main():
             sp = np.load(outdir_start_samples)
 
             flat_E = sp_energies.flatten()
-            energy_exp = np.mean(flat_E)
+            energy_exp= np.min(flat_E)
+            # energy_exp = np.mean(flat_E)
             print(energy_exp)
             flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
@@ -176,7 +177,7 @@ def main():
             #     flat_E = sp_energies[i, :]
             #     flat_samples = sp[i, :, :]
 
-            q25, q75 = np.percentile(flat_E, [25, 75])
+            q25, q75 = np.percentile(flat_E, [75, 100])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
             candidate_E = flat_E[candidate_mask]
             candidate_samples = flat_samples[candidate_mask, :]
@@ -221,7 +222,8 @@ def main():
     q0, q25 = np.percentile(flat_E, [0, 75])
     candidate_mask = (flat_E >= q0) & (flat_E <= q25)
     flat_E = flat_E[candidate_mask]
-    thousand_energies = flat_E[::int(len(flat_E) / 1000)]
+    print(np.min(flat_E))
+    thousand_energies = flat_E[::int(len(flat_E) / 100)]
     print(thousand_energies)
     delta_F_nominator = np.ascontiguousarray(np.sum(np.exp(-(betas[None, :] - betas[0])*thousand_energies[:, None]), axis = 0))
     print(-np.log(delta_F_nominator / len(thousand_energies)))
