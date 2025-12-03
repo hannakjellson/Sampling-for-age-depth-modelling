@@ -77,8 +77,8 @@ void hmc(
         inv_D18O_var[i] = 1.0 / (D18O_sigma[i] * D18O_sigma[i]);
     }
 
-    double delta_F_denominator_sum;
-    double max_delta_F_denominator_sum_term;
+    double *delta_F_denominator_sum = malloc(sizeof(double));
+    double *max_delta_F_denominator_sum_term = malloc(sizeof(double));
     int total = (int)pow(num_lambda, num_pcs) * num_temps;
     double max_delta_F_nominator_sum_term[total];
     double delta_F_nominator_sum[total];
@@ -87,8 +87,8 @@ void hmc(
 
     if (OPES && shared_bias)
     {
-        delta_F_denominator_sum = 0;
-        max_delta_F_denominator_sum_term = 0;
+        *delta_F_denominator_sum = 0;
+        *max_delta_F_denominator_sum_term = 0;
 
         for (int i = 0; i < total; i++)
         {
@@ -166,8 +166,8 @@ void hmc(
         double CV_point_plus_dist_sigma;
         double CV_point_minus_dist_sigma;
 
-        double delta_F_denominator_sum_local;
-        double max_delta_F_denominator_sum_term_local;
+        double *delta_F_denominator_sum_local;
+        double *max_delta_F_denominator_sum_term_local;
         double *max_delta_F_nominator_sum_term_local;
         double *delta_F_nominator_sum_local;
         double *delta_F_local;
@@ -187,8 +187,8 @@ void hmc(
             delta_F_local = malloc(total * sizeof(double));
             delta_F_nominator_sum_local = malloc(total * sizeof(double));
             max_delta_F_nominator_sum_term_local = malloc(total * sizeof(double));
-            delta_F_denominator_sum_local = 0;
-            max_delta_F_denominator_sum_term_local = 0;
+            *delta_F_denominator_sum_local = 0;
+            *max_delta_F_denominator_sum_term_local = 0;
 
             for (int i = 0; i < total; i++)
             {
@@ -578,24 +578,24 @@ void hmc(
                     if (m == i)
                     {
                         omp_set_lock(&deltaF_lock);
-                        if (bias_new > max_delta_F_denominator_sum_term_local)
+                        if (bias_new > *max_delta_F_denominator_sum_term_local)
                         {
-                            delta_F_denominator_sum_local *= exp(max_delta_F_denominator_sum_term_local - bias_new);
-                            max_delta_F_denominator_sum_term_local = bias_new;
+                            *delta_F_denominator_sum_local *= exp(*max_delta_F_denominator_sum_term_local - bias_new);
+                            *max_delta_F_denominator_sum_term_local = bias_new;
                         }
-                        delta_F_denominator_sum_local += exp(bias_new - max_delta_F_denominator_sum_term_local);
+                        *delta_F_denominator_sum_local += exp(bias_new - *max_delta_F_denominator_sum_term_local);
                         update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, bias_new, umbrella_bias, temp_bias, l, dfs);
-                        if (l % 100 == 0 && l > 0)
+                        if (l % 100 == 0 && l > 0 && false)
                         {
                             for (int i = 0; i < total; i++)
                             {
-                                delta_F_local[i] = max_delta_F_denominator_sum_term_local + log(delta_F_denominator_sum_local) - max_delta_F_nominator_sum_term_local[i] - log(delta_F_nominator_sum_local[i]);
+                                delta_F_local[i] = *max_delta_F_denominator_sum_term_local + log(*delta_F_denominator_sum_local) - max_delta_F_nominator_sum_term_local[i] - log(delta_F_nominator_sum_local[i]);
                                 // delta_F_local[i] = -log(delta_F_nominator_sum_local[i] / delta_F_denominator_sum_local); //-log(delta_F_nominator[i] / len_energies_df);
                                 delta_F_nominator_sum_local[i] = 0;
                                 max_delta_F_nominator_sum_term_local[i] = 0;
                             }
-                            delta_F_denominator_sum_local = 0;
-                            max_delta_F_denominator_sum_term_local = 0;
+                            *delta_F_denominator_sum_local = 0;
+                            *max_delta_F_denominator_sum_term_local = 0;
                         }
                         omp_unset_lock(&deltaF_lock);
                     }
