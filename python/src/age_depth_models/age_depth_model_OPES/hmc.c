@@ -87,14 +87,14 @@ void hmc(
 
     if (OPES && shared_bias)
     {
-        delta_F_denominator_sum = 1;
+        delta_F_denominator_sum = 0;
         max_delta_F_denominator_sum_term = 0;
 
         for (int i = 0; i < total; i++)
         {
             max_delta_F_nominator_sum_term[i] = 0;
-            delta_F_nominator_sum[i] = exp(-(betas[i] - beta0) * energy_exp); // 1;
-            delta_F[i] = (betas[i] - beta0) * energy_exp;                     // 0;
+            delta_F_nominator_sum[i] = 0;
+            delta_F[i] = (betas[i] - beta0) * energy_exp; // 0;
         }
     } // I have destroyed something here!
 
@@ -187,14 +187,14 @@ void hmc(
             delta_F_local = malloc(total * sizeof(double));
             delta_F_nominator_sum_local = malloc(total * sizeof(double));
             max_delta_F_nominator_sum_term_local = malloc(total * sizeof(double));
-            delta_F_denominator_sum_local = len_energies_df;
+            delta_F_denominator_sum_local = 1;
             max_delta_F_denominator_sum_term_local = 0;
 
             for (int i = 0; i < total; i++)
             {
                 max_delta_F_nominator_sum_term_local[i] = 0;
-                delta_F_nominator_sum_local[i] = delta_F_nominator[i];
-                delta_F_local[i] = -log(delta_F_nominator[i] / len_energies_df); //(betas[i] - beta0) * energy_exp; //
+                delta_F_nominator_sum_local[i] = exp(-(betas[i] - beta0) * energy_exp);
+                delta_F_local[i] = (betas[i] - beta0) * energy_exp;
             }
         }
 
@@ -585,7 +585,7 @@ void hmc(
                         }
                         delta_F_denominator_sum_local += exp(bias_new - max_delta_F_denominator_sum_term_local);
                         update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, bias_new, umbrella_bias, temp_bias, l, dfs);
-                        if (l % 100 == 0 && l > 0 && false)
+                        if (l % 1000 == 0 && l > 0)
                         {
                             delta_F_denominator_sum_local = 1;
                             max_delta_F_denominator_sum_term_local = 0;
