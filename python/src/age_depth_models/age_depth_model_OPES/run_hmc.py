@@ -177,7 +177,7 @@ def main():
             #     flat_E = sp_energies[i, :]
             #     flat_samples = sp[i, :, :]
 
-            q25, q75 = np.percentile(flat_E, [75, 100])
+            q25, q75 = np.percentile(flat_E, [0, 50])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
             candidate_E = flat_E[candidate_mask]
             candidate_samples = flat_samples[candidate_mask, :]

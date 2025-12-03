@@ -147,7 +147,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                 if temp:       
                     config["unb"] = False
                     config["ai"] = False
-                    config["dfs"] = 1000
+                    config["dfs"] = 100
                     if not config["ai"]:               
                         config["sbt"] = 1                                                     # Starting value for temp bias
                         config["ebt"] = 3                                                    # End value for temp bias
