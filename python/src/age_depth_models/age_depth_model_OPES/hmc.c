@@ -33,6 +33,11 @@ void hmc(
     bool OPES = (umbrella_bias || temp_bias);
     bool cap = !(isnan(cap_energy_scale));
     int num_lambda_2;
+    double tmp[] = {
+        0., -9.83626324, -18.33218757, -25.79688411, -32.44917093,
+        -38.44816242, -43.91189684, -48.93004057, -53.57311227, -57.89823818,
+        -61.95186564, -65.77105749, -69.38486985, -72.81617092, -76.08343881,
+        -79.20209534, -82.18530743, -85.04441394, -87.78914556, -90.4277464};
 
     double bias_sigma_2;
     double *gaussian_centers = NULL;
@@ -94,7 +99,7 @@ void hmc(
         {
             max_delta_F_nominator_sum_term[i] = 0;
             delta_F_nominator_sum[i] = 0;
-            delta_F[i] = (betas[i] - beta0) * energy_exp; // 0;
+            delta_F[i] = tmp[i]; //(betas[i] - beta0) * energy_exp; // 0;
         }
     } // I have destroyed something here!
 
@@ -173,7 +178,7 @@ void hmc(
         double *delta_F_local;
         FILE *deltaF_out_local;
 
-        if (shared_bias)
+        if (OPES && shared_bias)
         {
             delta_F_denominator_sum_local = delta_F_denominator_sum;
             max_delta_F_denominator_sum_term_local = max_delta_F_denominator_sum_term;
@@ -182,7 +187,7 @@ void hmc(
             max_delta_F_nominator_sum_term_local = max_delta_F_nominator_sum_term;
             deltaF_out_local = deltaF_out;
         }
-        else
+        else if (OPES)
         {
             delta_F_local = malloc(total * sizeof(double));
             delta_F_nominator_sum_local = malloc(total * sizeof(double));
@@ -194,7 +199,7 @@ void hmc(
             {
                 max_delta_F_nominator_sum_term_local[i] = 0;
                 delta_F_nominator_sum_local[i] = 0;
-                delta_F_local[i] = (betas[i] - beta0) * energy_exp;
+                delta_F_local[i] = tmp[i]; //(betas[i] - beta0) * energy_exp;
             }
         }
 
