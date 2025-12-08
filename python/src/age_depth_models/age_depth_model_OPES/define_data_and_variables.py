@@ -134,7 +134,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["b"] = 0.21                                                                    # Gamma prior rate
         config["sd"] = 36
         config["rsp"] = False
-        config["shb"] = True
+        config["shb"] = False
                 
         if cap:                   
             config["ces"] = 0.01                                                               # Cap energy scaling

@@ -171,8 +171,8 @@ void hmc(
         double CV_point_plus_dist_sigma;
         double CV_point_minus_dist_sigma;
 
-        double *delta_F_denominator_sum_local;
-        double *max_delta_F_denominator_sum_term_local;
+        double *delta_F_denominator_sum_local = malloc(sizeof(double));
+        double *max_delta_F_denominator_sum_term_local = malloc(sizeof(double));
         double *max_delta_F_nominator_sum_term_local;
         double *delta_F_nominator_sum_local;
         double *delta_F_local;
@@ -194,7 +194,6 @@ void hmc(
             max_delta_F_nominator_sum_term_local = malloc(total * sizeof(double));
             *delta_F_denominator_sum_local = 0;
             *max_delta_F_denominator_sum_term_local = 0;
-
             for (int i = 0; i < total; i++)
             {
                 max_delta_F_nominator_sum_term_local[i] = 0;
