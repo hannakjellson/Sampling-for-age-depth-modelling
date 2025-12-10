@@ -23,7 +23,7 @@ void hmc(
     int N, int num_dt, int num_HMC, int num_chains, int num_samples, int num_lambda, int num_temps, int num_pcs,
     int num_c14_depths, int num_D18O_depths, int num_D18O_reference_times, int seed, double H, double dt, double delta_c,
     double bias_sigma, double a, double b, double theta, double beta, double dE, double startbias, double endbias,
-    double startbias_temp, double endbias_temp, double bias_distance_count, double cap_energy_scale, double energy_exp, int dfs, int len_energies_df, double *delta_F_nominator,
+    double startbias_temp, double endbias_temp, double bias_distance_count, double cap_energy_scale, double energy_exp, int dfs, double *c_delta_F,
     double cap_width, double *betas, const double *cs, const double *pcs, const double *sp, const double *sp_mean, const double *sp_energies, const double *c14_ages, const double *c14_depths,
     const double *c14_sigma, const double *D18O, const double *D18O_depths, const double *D18O_sigma,
     const double *D18O_reference, const double *D18O_reference_times, double *samples_out, double *energy_out, double *bias_out, const char *config_str, const char *config_find_min_str, const char *data_name, bool shared_bias)
@@ -33,11 +33,7 @@ void hmc(
     bool OPES = (umbrella_bias || temp_bias);
     bool cap = !(isnan(cap_energy_scale));
     int num_lambda_2;
-    double tmp[] = {
-        0., -9.83626324, -18.33218757, -25.79688411, -32.44917093,
-        -38.44816242, -43.91189684, -48.93004057, -53.57311227, -57.89823818,
-        -61.95186564, -65.77105749, -69.38486985, -72.81617092, -76.08343881,
-        -79.20209534, -82.18530743, -85.04441394, -87.78914556, -90.4277464};
+    bool cdf = (c_delta_F == NULL) ? false : true;
 
     double bias_sigma_2;
     double *gaussian_centers = NULL;
@@ -99,9 +95,9 @@ void hmc(
         {
             max_delta_F_nominator_sum_term[i] = 0;
             delta_F_nominator_sum[i] = 0;
-            delta_F[i] = tmp[i]; //(betas[i] - beta0) * energy_exp; // 0;
+            delta_F[i] = cdf ? c_delta_F[i] : (betas[i] - beta0) * energy_exp;
         }
-    } // I have destroyed something here!
+    }
 
     omp_lock_t deltaF_lock;
     omp_init_lock(&deltaF_lock);
@@ -198,7 +194,7 @@ void hmc(
             {
                 max_delta_F_nominator_sum_term_local[i] = 0;
                 delta_F_nominator_sum_local[i] = 0;
-                delta_F_local[i] = tmp[i]; //(betas[i] - beta0) * energy_exp;
+                delta_F_local[i] = cdf ? c_delta_F[i] : (betas[i] - beta0) * energy_exp;
             }
         }
 
@@ -588,7 +584,7 @@ void hmc(
                             *max_delta_F_denominator_sum_term_local = bias_new;
                         }
                         *delta_F_denominator_sum_local += exp(bias_new - *max_delta_F_denominator_sum_term_local);
-                        update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, bias_new, umbrella_bias, temp_bias, l, dfs);
+                        update_delta_F(num_pcs, CV_point, num_lambda, num_temps, bias_sigma_2, dE, gaussian_centers, betas, beta0, energy_new, delta_F_nominator_sum_local, delta_F_denominator_sum_local, max_delta_F_nominator_sum_term_local, max_delta_F_denominator_sum_term_local, delta_F_local, bias_new, umbrella_bias, temp_bias, l, dfs, c_delta_F, cdf);
                         if (l % 100 == 0 && l > 0 && false)
                         {
                             for (int i = 0; i < total; i++)
