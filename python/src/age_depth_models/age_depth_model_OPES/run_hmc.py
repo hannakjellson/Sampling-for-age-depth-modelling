@@ -229,7 +229,6 @@ def main():
     # # print(-np.log(delta_F_nominator / len(thousand_energies)))
     if config["cdf"]:
         output_dir_new = re.sub(r"mi(\d+)", fr"mi{10000}", str(output_dir))
-        output_dir_new = re.sub(r"ns(\d+)_co", fr"ns{10000}_co", output_dir_new)
         delta_F = np.fromfile(output_dir_new[:-4] + "_shb/deltaF.bin", dtype = np.float64)
         print(np.shape(delta_F))
         delta_F = delta_F.reshape(-1, config["nt"])[-1, :]
