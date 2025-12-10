@@ -66,8 +66,7 @@ def define_c_types_hmc(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # energy_exp
         ctypes.c_int,  # delta_F start update
-        ctypes.c_int,  # energies ->len(delta_F_nominator_start)
-        ctypes.POINTER(ctypes.c_double),  # delta_F_nominator_start
+        ctypes.POINTER(ctypes.c_double),  # constant delta_F
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
@@ -222,8 +221,7 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(0.0),
         ctypes.c_int(0),
-        ctypes.c_int(0), 
-        np.zeros(1).ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        None,
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),

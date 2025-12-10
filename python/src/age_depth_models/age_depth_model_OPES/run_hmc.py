@@ -8,6 +8,7 @@ from define_data_and_variables import get_data, get_hmc_config
 import datetime as datetime
 import platform
 from pathlib import Path
+import re
 
 
 def define_c_types(lib):
@@ -41,8 +42,7 @@ def define_c_types(lib):
         ctypes.c_double,  # cap_energy_scaling
         ctypes.c_double,  # energy_exp
         ctypes.c_int,  # delta_F start update
-        ctypes.c_int,  # energies ->len(delta_F_nominator_start)
-        ctypes.POINTER(ctypes.c_double),  # delta_F_nominator_start
+        ctypes.POINTER(ctypes.c_double),  # constant dF
         ctypes.c_double,  # cap_width
         ctypes.POINTER(ctypes.c_double),  # betas
         ctypes.POINTER(ctypes.c_double),  # cs
@@ -219,14 +219,22 @@ def main():
         betas = 1/temps
         betas = np.ascontiguousarray(betas)
 
-    q0, q25 = np.percentile(flat_E, [0, 75])
-    candidate_mask = (flat_E >= q0) & (flat_E <= q25)
-    flat_E = flat_E[candidate_mask]
-    # print(np.min(flat_E))
-    thousand_energies = flat_E[::int(len(flat_E) / 100)]
-    # print(thousand_energies)
-    delta_F_nominator = np.ascontiguousarray(np.sum(np.exp(-(betas[None, :] - betas[0])*thousand_energies[:, None]), axis = 0))
-    # print(-np.log(delta_F_nominator / len(thousand_energies)))
+    # q0, q25 = np.percentile(flat_E, [0, 75])
+    # candidate_mask = (flat_E >= q0) & (flat_E <= q25)
+    # flat_E = flat_E[candidate_mask]
+    # # print(np.min(flat_E))
+    # thousand_energies = flat_E[::int(len(flat_E) / 100)]
+    # # print(thousand_energies)
+    # delta_F_nominator = np.ascontiguousarray(np.sum(np.exp(-(betas[None, :] - betas[0])*thousand_energies[:, None]), axis = 0))
+    # # print(-np.log(delta_F_nominator / len(thousand_energies)))
+    if config["cdf"]:
+        output_dir_new = re.sub(r"mi(\d+)", fr"mi{10000}", str(output_dir))
+        delta_F = np.fromfile(output_dir_new[:-4] + "_shb/deltaF.bin", dtype = np.float64)
+        print(np.shape(delta_F))
+        delta_F = delta_F.reshape(-1, config["nt"])[-1, :]
+        print(np.shape(delta_F))
+    else: 
+        delta_F = None
     total = config["nch"] * config["ns"]
     total_times_N = total * config["N"]
     samples_out = (ctypes.c_double * total_times_N)()
@@ -266,8 +274,7 @@ def main():
         ctypes.c_double(config["ces"]),
         ctypes.c_double(energy_exp),
         ctypes.c_int(config["dfs"]),
-        ctypes.c_int(len(thousand_energies)), 
-        delta_F_nominator.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        delta_F.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) if delta_F is not None else None,
         ctypes.c_double(config["cw"]),
         betas.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         cs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
