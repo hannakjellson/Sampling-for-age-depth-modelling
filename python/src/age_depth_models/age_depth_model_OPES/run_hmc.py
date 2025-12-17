@@ -9,6 +9,7 @@ import datetime as datetime
 import platform
 from pathlib import Path
 import re
+from scipy.spatial.distance import cdist
 
 
 def define_c_types(lib):
@@ -160,12 +161,15 @@ def main():
             flat_samples = sp.reshape(config_find_min["nlsp"]*config_find_min["ns"], -1)
             
             if not np.isnan(config["unb"]) and config["unb"]:
-                def n_eff(beta):
-                    weights = np.exp(-(beta - 1)*flat_E)
+                def n_eff(lamb):
+                    weights = np.exp(-lamb*flat_E)
                     return np.sum(weights)**2 - 0.5 * len(weights) * np.sum(weights**2)
-                sol_neg= abs(sc.optimize.brentq(n_eff, 1/config["ebt"], 1/config["sbt"])-1)
+                sol_neg= abs(sc.optimize.brentq(n_eff, 1/config["ebt"] - 1, 0))
                 config["nt"] = int((1/config["sbt"] - 1/config["ebt"])/sol_neg)
-                betas = np.linspace(1/config["ebt"], 1/config["sbt"], config["nt"])
+                print(config["nt"])
+                factor = np.linspace(0, config["nt"] - 1, config["nt"]) / (config["nt"] - 1) if config["nt"] != 1 else 0
+                temps = config["sbt"] + (factor * (config["ebt"] - config["sbt"]))
+                betas = 1/temps
                 betas = np.ascontiguousarray(betas)
                 np.save(base_dir / f"../../../../output/{data_name}/{config_find_min_str}/temps_sbt{config['sbt']}_ebt{config['ebt']}.npy", 1/betas)
                 
@@ -176,14 +180,25 @@ def main():
             # for i in range(config["nch"]):
             #     flat_E = sp_energies[i, :]
             #     flat_samples = sp[i, :, :]
+            def farthest_points(X, E, k):
+                selected = [0]
+                distances = cdist(X, X[[0]])
 
-            q25, q75 = np.percentile(flat_E, [0, 50])
+                for _ in range(1, k):
+                    idx = np.argmax(np.min(distances, axis=1))
+                    selected.append(idx)
+                    distances = np.minimum(distances, cdist(X, X[[idx]]))
+
+                return X[selected], E[selected]
+            
+            furthest_samples, furthest_E = farthest_points(flat_samples, flat_E, int(config["nch"]/2))
+            q25, q75 = np.percentile(flat_E, [0, 20])
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
             candidate_E = flat_E[candidate_mask]
             candidate_samples = flat_samples[candidate_mask, :]
-            indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
-            sp = candidate_samples[indices, :]
-            sp_energies = candidate_E[indices]
+            indices = np.random.choice(len(candidate_samples), size=config["nch"] - int(config["nch"]/2), replace=False)
+            sp = np.concatenate([candidate_samples[indices, :], furthest_samples], axis = 0)
+            sp_energies = np.concatenate([candidate_E[indices], furthest_E], axis = 0)
             # sp_new.append(sp_chain)
             # sp_energies_new.append(sp_energies_chain)
             sp = np.array(sp)
