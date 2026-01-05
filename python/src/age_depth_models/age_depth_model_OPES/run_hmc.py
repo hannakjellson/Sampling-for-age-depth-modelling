@@ -136,6 +136,16 @@ def main():
 
     pcs = eigenvectors[:, :config["npc"]] if not np.isnan(config["npc"]) else eigenvectors[:, 0]
     pcs = np.ascontiguousarray(pcs.T) if not np.isnan(config["npc"]) else np.ascontiguousarray(eigenvectors[:, 0].T)
+    pcs = np.ascontiguousarray([ -0.372512  ,   0.368988  ,  -0.40594484,  -5.88625388,  -1.36862152,
+            -2.90620041,  -1.29356735,   9.53264088,  -2.96817671,  -5.76473181,
+            4.86318317 ,  6.56208778 ,  0.26955402 , -1.67761841 ,  0.80065795,
+            -0.66898159,   0.25686132,   0.71394836,  -0.93903735,   1.24207394,
+            4.03013694 , -4.37042003 ,  5.60770599 , -1.25896429 , -3.99538768,
+            -0.73391594,  -0.32640492,   0.80460537,  -0.52397223,  -0.31105137,
+            -0.47806889,   2.34433017,  -1.8599386 ,   1.13345259,  -2.21903234,
+            2.48285054 , -0.81248988 ,  1.86633271 , -3.11503952 ,  3.66726559,
+            -2.14669203,  -0.69137261,   0.54438477,  17.49234409,   8.61216856,
+            2.74896377 ,-28.63593363 ,  0.47418141 , -2.33651062 , -1.85291703,]) 
     
     betas = [0]
     betas = np.ascontiguousarray(betas)
@@ -196,9 +206,12 @@ def main():
             candidate_mask = (flat_E >= q25) & (flat_E <= q75)
             candidate_E = flat_E[candidate_mask]
             candidate_samples = flat_samples[candidate_mask, :]
-            indices = np.random.choice(len(candidate_samples), size=config["nch"] - int(config["nch"]/2), replace=False)
-            sp = np.concatenate([candidate_samples[indices, :], furthest_samples], axis = 0)
-            sp_energies = np.concatenate([candidate_E[indices], furthest_E], axis = 0)
+            # indices = np.random.choice(len(candidate_samples), size=config["nch"] - int(config["nch"]/2), replace=False)
+            indices = np.random.choice(len(candidate_samples), size=config["nch"], replace=False)
+            # sp = np.concatenate([candidate_samples[indices, :], furthest_samples], axis = 0)
+            # sp_energies = np.concatenate([candidate_E[indices], furthest_E], axis = 0)
+            sp = candidate_samples[indices, :]
+            sp_energies = candidate_E[indices]
             # sp_new.append(sp_chain)
             # sp_energies_new.append(sp_energies_chain)
             sp = np.array(sp)

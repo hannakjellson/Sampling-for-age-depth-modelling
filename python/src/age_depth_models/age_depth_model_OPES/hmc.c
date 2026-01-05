@@ -91,11 +91,14 @@ void hmc(
         *delta_F_denominator_sum = 0;
         *max_delta_F_denominator_sum_term = 0;
 
-        for (int i = 0; i < total; i++)
+        for (int i = 0; i < num_lambda; i++)
         {
-            max_delta_F_nominator_sum_term[i] = 0;
-            delta_F_nominator_sum[i] = 0;
-            delta_F[i] = cdf ? c_delta_F[i] : (betas[i] - beta0) * energy_exp;
+            for (int j = 0; j < num_temps; j++)
+            {
+                max_delta_F_nominator_sum_term[i * num_temps + j] = 0;
+                delta_F_nominator_sum[i * num_temps + j] = 0;
+                delta_F[i * num_temps + j] = cdf ? c_delta_F[i * num_temps + j] : (betas[j] - beta0) * energy_exp;
+            }
         }
     }
 
@@ -263,25 +266,19 @@ void hmc(
             for (int j = 0; j < num_pcs; j++)
             {
                 CV_point[j] = get_CV_point(N, variables, pcs + j * N, sp_mean);
-                if (umbrella_bias)
-                {
-                    CV_point_plus_dist_sigma = CV_point[j] + bias_distance_count * bias_sigma;
-                    CV_point_minus_dist_sigma = CV_point[j] - bias_distance_count * bias_sigma;
-                    start_index[j] = max(0, binary_search(gaussian_centers, num_lambda, CV_point_minus_dist_sigma));
-                    end_index[j] = min(num_lambda, binary_search(gaussian_centers, num_lambda, CV_point_plus_dist_sigma));
-                    if (start_index[j] == num_lambda)
-                        start_index[j] = num_lambda - 1;
-                    if (end_index[j] == 0)
-                        end_index[j] = 1;
-                }
-            }
-            if (umbrella_bias)
-            {
-                for (int j = num_pcs; j < MAX_NBR_PC; j++)
-                {
-                    start_index[j] = 0;
+                CV_point_plus_dist_sigma = CV_point[j] + bias_distance_count * bias_sigma;
+                CV_point_minus_dist_sigma = CV_point[j] - bias_distance_count * bias_sigma;
+                start_index[j] = max(0, binary_search(gaussian_centers, num_lambda, CV_point_minus_dist_sigma));
+                end_index[j] = min(num_lambda, binary_search(gaussian_centers, num_lambda, CV_point_plus_dist_sigma));
+                if (start_index[j] == num_lambda)
+                    start_index[j] = num_lambda - 1;
+                if (end_index[j] == 0)
                     end_index[j] = 1;
-                }
+            }
+            for (int j = num_pcs; j < MAX_NBR_PC; j++)
+            {
+                start_index[j] = 0;
+                end_index[j] = 1;
             }
         }
 

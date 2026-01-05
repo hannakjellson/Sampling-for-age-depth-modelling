@@ -129,7 +129,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
         config["co"] = 0                                                                     # Cutout
         config["ndt"] =700                                                                    # Number of Leapfrog steps
         config["nHMC"] = 1                                                                   # Number of HMC steps between sampling
-        config["nch"] = 10                                                                    # Number of chains
+        config["nch"] = 5                                                                    # Number of chains
         config["a"] = 1.5                                                                     # Gamma prior shape
         config["b"] = 0.21                                                                    # Gamma prior rate
         config["sd"] = 31
@@ -153,7 +153,7 @@ def get_hmc_config(find_min = False, bias = "", cap = False, temp = False, umbre
                         config["sbt"] = 1                                                     # Starting value for temp bias
                         config["ebt"] = 5                                                    # End value for temp bias
                         if not config["unb"]:
-                            config["nt"] = 20                                                     # Number of temperatures
+                            config["nt"] = 30                                                     # Number of temperatures
                             config["ut"] = True
                 if umbrella:
                     config["s"] = 0.4                                                                   # Bias sigma
