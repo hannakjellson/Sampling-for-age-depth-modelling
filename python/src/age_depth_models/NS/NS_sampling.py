@@ -107,11 +107,12 @@ def main():
     posterior_samples = resample(
         subkey,
         results.samples,
-        results.log_weights,
+        results.log_dp_mean,
         num_samples=10000
     )
 
     save_results(results, "results.json")
+    np.save("posterior_samples.npy", posterior_samples)
 
 
 if __name__ == "__main__":
