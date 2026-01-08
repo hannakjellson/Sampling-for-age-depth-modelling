@@ -102,18 +102,7 @@ def main():
     config, config_str = get_hmc_config()
     data = get_data()
     results = run_discovery(subkey, config, data)
-
-    key, subkey = jax.random.split(key)
-    posterior_samples = resample(
-        subkey,
-        results.samples,
-        results.log_dp_mean,
-        S=10000
-    )
-
     save_results(results, "results.json")
-    np.save("posterior_samples.npy", posterior_samples)
-
 
 if __name__ == "__main__":
     main()
