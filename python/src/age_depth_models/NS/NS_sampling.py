@@ -108,7 +108,7 @@ def main():
         subkey,
         results.samples,
         results.log_dp_mean,
-        num_samples=10000
+        S=10000
     )
 
     save_results(results, "results.json")
