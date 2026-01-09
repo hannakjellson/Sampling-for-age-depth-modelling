@@ -51,6 +51,7 @@ def bias_potential(energy, delta_F):
 
     # return -jnp.log(sum_for_V / NUM_LAMBDA)
     temp_term = (BETAS - BETA_0) * energy
+    # jax.debug.print("energy = {}", energy)
     sum_for_V = jnp.sum(
             jnp.exp(-temp_term + delta_F)
         )
@@ -95,7 +96,7 @@ def inference_loop(
     algorithm_name = adaptation_kwargs.pop("algorithm", "nuts")
     algorithm = blackjax.hmc
 
-    jax.debug.print("init_position = {}", init_position)
+    # jax.debug.print("init_position = {}", init_position)
 
     # Set up initial state, init_position is passed from outside
     # Default should be uniform
@@ -143,6 +144,7 @@ def inference_loop(
         delta_F_nominator_sum = bias_state.delta_F_nominator_sum
         delta_F_denominator_sum = bias_state.delta_F_denominator_sum
         delta_F = bias_state.delta_F
+
         # partial function evaluation, so that bias arguments are always the
         # same
         bias_function = partial(
@@ -164,6 +166,8 @@ def inference_loop(
 
         grad_fn = jax.value_and_grad(logp_biased)
         logdensity, logdensity_grad = grad_fn(state.position) # Note that these are based on the biased log_p, so state.logdensity is energy - bias and same for state.logdensity_grad
+        # jax.debug.print("logp = {}", logdensity)
+        # jax.debug.breakpoint()
         state = HMCState(
             position=state.position,
             logdensity=logdensity,

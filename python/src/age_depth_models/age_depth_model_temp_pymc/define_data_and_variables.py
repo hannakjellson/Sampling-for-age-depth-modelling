@@ -114,10 +114,10 @@ def get_hmc_config():
     delta_c = H / N
     cs = np.linspace(0, H, N + 1)
     num_samples = 1000
-    num_chains = 4
+    num_chains = 5
     a = 1.5
     b = 0.27
-    dt = 0.001
+    dt = 0.0008
     nt = 20
     mt = 3
     ndt = 700

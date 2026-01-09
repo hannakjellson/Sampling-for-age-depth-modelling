@@ -76,20 +76,21 @@ def main():
             observed=data["d18O"],
         )
 
-        starting_points = np.load("C:/Users/hanna/Desktop/PhD/Bacon/output/dayu06/N50_H100_dc2_dt0.001_ns100_ndt100_nHMC1_a1.5_b0.21_nlsp100_mi1000_gl1e-05_hmc_sd42_bt1_adt1e-05/start_samples.npy")
-        starting_energies = np.load("C:/Users/hanna/Desktop/PhD/Bacon/output/dayu06/N50_H100_dc2_dt0.001_ns100_ndt100_nHMC1_a1.5_b0.21_nlsp100_mi1000_gl1e-05_hmc_sd42_bt1_adt1e-05/start_energies.npy")
+        starting_points = np.load("C:/Users/hanna/Desktop/PhD/Bacon/output/dayu06/N50_H100_dc2_dt0.001_ns1000_ndt100_nHMC1_a1.5_b0.21_nlsp100_mi10000_gl1e-05_hmc_sd32_bt1_adt1e-05/start_samples.npy")
+        starting_energies = np.load("C:/Users/hanna/Desktop/PhD/Bacon/output/dayu06/N50_H100_dc2_dt0.001_ns1000_ndt100_nHMC1_a1.5_b0.21_nlsp100_mi10000_gl1e-05_hmc_sd32_bt1_adt1e-05/start_energies.npy")
         sp_index = np.argmin(starting_energies[:config["num_chains"], :], axis = 1)
         sp = [starting_points[i, sp_index_i, :] for i, sp_index_i in enumerate(sp_index)]
-        print(sp)
+        print(np.log(sp))
         initvals = [{'sed_rates' : np.array(init_val)} for init_val in sp]
+        print(initvals)
         # Sample
         trace = pmj.sample_blackjax_nuts(
             int(config["num_samples"]),
-            tune=0,
-            target_accept=0.9,
+            tune=int(config["num_samples"]),
+            # target_accept=0.95,
             chains=config["num_chains"],
             progressbar=True,
-            random_seed = 42,
+            random_seed = 32,
             initvals=initvals,
         )
 
