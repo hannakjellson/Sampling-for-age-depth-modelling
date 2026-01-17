@@ -5,6 +5,7 @@ os.environ['XLA_FLAGS'] = "--xla_disable_hlo_passes=constant_folding,simplify-re
 import jax
 from jaxns import NestedSampler, Model, Prior
 import tensorflow_probability.substrates.jax as tfp
+tfd = tfp.distributions
 from jax import random, numpy as jnp
 from define_data_and_variables import get_data, get_hmc_config
 from jaxns import save_results
@@ -28,7 +29,7 @@ def build_jaxns_model(config, data):
     
     delta_c = config["delta_c"]
     theta = data["theta"]
-
+    
     @jax.jit
     def log_likelihood(sed_rates):
         # 2. OPTIMIZED CUMSUM: Avoid concatenate inside JIT where possible
@@ -60,14 +61,41 @@ def build_jaxns_model(config, data):
         return l1 + l2
 
     def prior_model():
-        lamda = yield Prior(
-            tfpd.Gamma(
-                concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
-                rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
-            ),
-            name="lamda"
+        from jaxns import resample
+        from jaxns.utils import load_results
+
+        results = load_results("results_less_data_onlyc14.json")
+        samples = jnp.array(results.samples['sed_rates'])
+
+        key = jax.random.PRNGKey(0)
+        key, subkey = jax.random.split(key)
+        posterior_samples = resample(
+            subkey,
+            results.samples,
+            results.log_dp_mean,
+            S=len(samples)
         )
-        return lamda
+        posterior_samples= jnp.array(posterior_samples['sed_rates'])
+
+        flattened = posterior_samples.reshape(-1, posterior_samples.shape[-1])
+        sigma_x = jnp.cov(flattened, rowvar=False)
+        mu_x = jnp.mean(flattened, axis = 0)
+
+        dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
+        alpha = yield Prior(
+            dist, 
+            name='sed_rates'
+        )
+
+        # alpha = yield Prior(
+        #     tfpd.Gamma(
+        #         concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
+        #         rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
+        #     ),
+        #     name="sed_rates"
+        # )
+
+        return alpha
 
     return Model(prior_model=prior_model, log_likelihood=log_likelihood)
 
@@ -75,7 +103,7 @@ def run_discovery(key, config, data):
     model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=10000)
+    ns = NestedSampler(model=model, verbose=True, num_live_points=15000)
 
     # Use block_until_ready to ensure the compilation warning doesn't hide errors
     print("Compiling model... this may take up to 2 minutes for 10,000 chains.")
@@ -96,7 +124,7 @@ def main():
     data = get_data()
     
     results = run_discovery(key, config, data)
-    save_results(results, "results.json")
+    save_results(results, "results_all_data_better_prior.json")
     print("Sampling complete. Results saved.")
 
 if __name__ == "__main__":
