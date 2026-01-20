@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import os
+import json
+import hashlib
 
 def read_data(data):
     base_path = "../../../../data/"
@@ -74,7 +76,7 @@ def get_data():
         D18O_sigma,
         D18O_reference_times,
         D18O_reference,
-    ) = read_data("dayu26")
+    ) = read_data("dayu06")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -108,31 +110,59 @@ def get_data():
     return data
 
 
-def get_hmc_config():
-    N = 10
-    H = 20
+def get_NS_config():
+    N = 50
+    H = 100
     delta_c = H / N
     cs = np.linspace(0, H, N + 1)
-    num_samples = 100000
-    num_chains = 4
+    num_points_c14 = 10
+    num_points = 10
     a = 1.5
-    b = 0.27
+    b = 0.21
+    sd = 42
 
     config = {
         "N": N,
         "H": H,
         "delta_c": delta_c,
         "cs": cs,
-        "num_samples": num_samples,
-        "num_chains": num_chains,
+        "num_points_c14": num_points_c14,
+        "num_points": num_points,
         "a": a,
-        "b": b
+        "b": b,
+        "sd": sd,
     }
 
-    config_str = "_".join(
-    f"{k}{v:.2f}" if isinstance(v, float) else f"{k}{v}"
-    for k, v in config.items()
-    if isinstance(v, (int, float))
-    )   
+    return config
 
-    return config, config_str
+def sanitize(obj):
+    if isinstance(obj, np.ndarray):
+        return {
+            "__ndarray__": True,
+            "shape": obj.shape,
+            "dtype": str(obj.dtype),
+        }
+    elif isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [sanitize(v) for v in obj]
+    else:
+        return obj
+    
+def hash_configs(*configs, algo="sha256", length=10):
+    """
+    Create a stable hash from one or more config dicts.
+    """
+    sanitized = sanitize(configs)
+
+    # Canonical JSON: sorted keys, no whitespace
+    canonical = json.dumps(
+        sanitized,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+    h = hashlib.new(algo)
+    h.update(canonical)
+
+    return h.hexdigest()[:length]

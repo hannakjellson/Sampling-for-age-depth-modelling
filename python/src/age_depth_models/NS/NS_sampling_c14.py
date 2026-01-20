@@ -29,7 +29,6 @@ def build_jaxns_model(config, data):
     
     delta_c = config["delta_c"]
     theta = data["theta"]
-    hash = hash_configs(config, data)
     
     @jax.jit
     def log_likelihood(sed_rates):
@@ -43,58 +42,18 @@ def build_jaxns_model(config, data):
                          - sed_rates[indices_c14] * (c14_depths - cs[indices_c14]))
         
         l1 = jnp.sum(jax.scipy.stats.norm.logpdf(c14_ages, loc=expected_ages, scale=c14_sigma))
-
-        # D18O calculation
-        indices_d18 = jnp.searchsorted(cs, d18O_depths, side="right") - 1
-        d18_times = (theta - cumsum[indices_d18] * delta_c 
-                     - sed_rates[indices_d18] * (d18O_depths - cs[indices_d18]))
         
-        # Interpolation with safe clipping
-        interp_indices = jnp.clip(jnp.searchsorted(ref_times, d18_times, side="right") - 1, 0, len(ref_times) - 2)
-        t0, t1 = ref_times[interp_indices], ref_times[interp_indices + 1]
-        v0, v1 = ref_vals[interp_indices], ref_vals[interp_indices + 1]
-        
-        # Vectorized interpolation
-        expected_D18O = v0 + (v1 - v0) / (t1 - t0) * (d18_times - t0)
-        
-        l2 = jnp.sum(jax.scipy.stats.norm.logpdf(d18O_vals, loc=expected_D18O, scale=d18O_sigma))
-        
-        return l1 + l2
+        return l1
 
     def prior_model():
-        from jaxns import resample
-        from jaxns.utils import load_results
 
-        results = load_results(f"output/{hash}/results_c14.json")
-        samples = jnp.array(results.samples['sed_rates'])
-
-        key = jax.random.PRNGKey(0)
-        key, subkey = jax.random.split(key)
-        posterior_samples = resample(
-            subkey,
-            results.samples,
-            results.log_dp_mean,
-            S=len(samples)
-        )
-        posterior_samples= jnp.array(posterior_samples['sed_rates'])
-
-        flattened = posterior_samples.reshape(-1, posterior_samples.shape[-1])
-        sigma_x = jnp.cov(flattened, rowvar=False)
-        mu_x = jnp.mean(flattened, axis = 0)
-
-        dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
         alpha = yield Prior(
-            dist, 
-            name='sed_rates'
+            tfpd.Gamma(
+                concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
+                rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
+            ),
+            name="sed_rates"
         )
-
-        # alpha = yield Prior(
-        #     tfpd.Gamma(
-        #         concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
-        #         rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
-        #     ),
-        #     name="sed_rates"
-        # )
 
         return alpha
 
@@ -104,7 +63,7 @@ def run_discovery(key, config, data):
     model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points"])
+    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points_c14"])
 
     # Use block_until_ready to ensure the compilation warning doesn't hide errors
     print("Compiling model... this may take up to 2 minutes for 10,000 chains.")
@@ -120,13 +79,16 @@ def main():
     # Force float64 if your model needs the precision, otherwise float32 is 2-4x faster
     # jax.config.update("jax_enable_x64", True) 
     
-    key = jax.random.PRNGKey(42)
     config = get_NS_config()
     data = get_data()
+
     hash = hash_configs(config, data)
+    output_dir = f"output/{hash}"
+    os.makedirs(output_dir, exist_ok=True)
+    key = jax.random.PRNGKey(config["sd"])
     
     results = run_discovery(key, config, data)
-    save_results(results, f"output/{hash}/results_d18o.json")
+    save_results(results, f"{output_dir}/results_c14.json")
     print("Sampling complete. Results saved.")
 
 if __name__ == "__main__":
