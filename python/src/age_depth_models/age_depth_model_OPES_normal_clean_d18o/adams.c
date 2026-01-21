@@ -51,7 +51,6 @@ void adams(ADAMConfig *ac, Data *d, double *energy_out, double *d18o_energy_out,
     {
         rngs[i] = gsl_rng_alloc(T);
         gsl_rng_set(rngs[i], ac->sd + i); // deterministic per-index seed
-        printf("%d\n", ac->sd);
     }
 
     int num_d18O_points_stoch = 50;
