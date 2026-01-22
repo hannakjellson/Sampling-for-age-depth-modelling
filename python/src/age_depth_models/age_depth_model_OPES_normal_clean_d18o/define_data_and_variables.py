@@ -102,7 +102,7 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 10000,
+        "ns": 125000,
         "sd": 42,
 
         "dt": 0.0008,
@@ -125,7 +125,7 @@ def get_opes_config():
         "dfn": None,
         "dfd": 100.0,
         "bs": np.ascontiguousarray(1 / np.linspace(1, ebt, nt)),  # convert to list for JSON/dict
-        "sb": 0,
+        "sb": 1,
     }
     return opes_config
 
