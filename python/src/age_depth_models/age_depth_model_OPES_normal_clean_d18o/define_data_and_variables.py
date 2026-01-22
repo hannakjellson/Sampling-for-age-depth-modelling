@@ -35,7 +35,9 @@ class OPESConfig(ctypes.Structure):
         ("nt", ctypes.c_int64), # number of temperatures
 
         ("ebt", ctypes.c_double), # highest temperature
-        ("ee", ctypes.c_double), # expected energy
+        ("df", ctypes.POINTER(ctypes.c_double)), # expected energy
+        ("dfn", ctypes.POINTER(ctypes.c_double)), # expected energy
+        ("dfd", ctypes.c_double), # expected energy
 
         ("bs", ctypes.POINTER(ctypes.c_double)), # betas (1/temperatures)
 
@@ -87,7 +89,7 @@ def dict_to_struct(d: dict, struct_type):
 def get_adam_config():
     adam_config = {
         "nsp": 100,
-        "mi": 10000,
+        "mi": 100,
         "sd": 42,
 
         "dt": 0.00001,
@@ -111,8 +113,8 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 10
-    nt = 20
+    ebt = 20
+    nt = 40
 
     opes_config = {
         "hmcc": hmc_config,  # keep the nested config as a dict
@@ -120,6 +122,8 @@ def get_opes_config():
         "nt": nt,
         "ebt": ebt,
         "ee": None,
+        "dfn": None,
+        "dfd": 100.0,
         "bs": np.ascontiguousarray(1 / np.linspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 0,
     }

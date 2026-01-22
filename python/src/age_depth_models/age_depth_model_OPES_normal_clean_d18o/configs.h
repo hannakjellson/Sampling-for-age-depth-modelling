@@ -38,8 +38,10 @@ typedef struct
     int64_t nhmc;    /* number of HMC steps before updating bias */
     int64_t nt;      /* number of temperatures */
 
-    double ebt; /* highest temperature */
-    double ee;  /* energy expectation */
+    double ebt;  /* highest temperature */
+    double *df;  /* energy expectation */
+    double *dfn; /* energy expectation */
+    double dfd;  /* energy expectation */
 
     double *bs; /* betas (1 / temperatures) */
 

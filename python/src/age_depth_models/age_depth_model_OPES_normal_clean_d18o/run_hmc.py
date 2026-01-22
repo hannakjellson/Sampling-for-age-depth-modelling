@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import json
 
-from define_data_and_variables import HMCConfig, OPESConfig, Data, opes_config, data, c_data, adam_hash, dict_to_struct, make_dumpable, hash_configs
+from define_data_and_variables import HMCConfig, OPESConfig, Data, adam_config, opes_config, data, c_data, adam_hash, dict_to_struct, make_dumpable, hash_configs
 import platform
 from pathlib import Path
 import re
@@ -13,17 +13,24 @@ from scipy.spatial.distance import cdist
 
 def main():
     base_dir = Path(__file__).parent 
-    adam_dir = base_dir / f"output/{data["dn"]}/{adam_hash}"
+    adam_config_ee = adam_config
+    adam_config_ee["mi"] = 10000
+    adam_hash_ee = hash_configs(adam_config_ee, data)
+
+    adam_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
+    adam_dir_ee = base_dir / f"output/{data['dn']}/{adam_hash_ee}"
 
     sp = np.load(adam_dir / "adam_samples.npy")
     energies = np.load(adam_dir / "adam_energies.npy")
-    d18o_energies = np.load(adam_dir / "adam_d18o_energies.npy")
+    d18o_energies = np.load(adam_dir_ee / "adam_d18o_energies.npy")
 
+    print(np.min(d18o_energies))
     indices = np.argsort(energies)
     sp = sp[indices][:opes_config["hmcc"]["nch"]]
     opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-    opes_config["ee"] = np.mean(d18o_energies)
-
+    opes_config["df"] = np.min(d18o_energies) * (opes_config["bs"] - 1)
+    opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
+    # return
     opes_hash = hash_configs(opes_config, data)
     output_dir = adam_dir / f"{opes_hash}"
     os.makedirs(output_dir, exist_ok=True)

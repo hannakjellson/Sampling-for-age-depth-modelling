@@ -40,11 +40,11 @@ void opes(
 
     if (oc->sb)
     {
-        *delta_F_denominator_sum = 0;
+        *delta_F_denominator_sum = oc->dfd;
         for (i = 0; i < oc->nt; i++)
         {
-            delta_F_nominator_sum[i] = 0;
-            delta_F[i] = (oc->bs[i] - 1) * oc->ee;
+            delta_F_nominator_sum[i] = oc->dfn[i];
+            delta_F[i] = oc->df[i];
         }
     }
 
@@ -102,14 +102,14 @@ void opes(
         }
         else
         {
-            *delta_F_denominator_sum_local = 0;
+            *delta_F_denominator_sum_local = oc->dfd;
             delta_F_nominator_sum_local = malloc(oc->nt * sizeof(double));
             delta_F_local = malloc(oc->nt * sizeof(double));
 
             for (j = 0; j < oc->nt; j++)
             {
-                delta_F_nominator_sum_local[j] = 0;
-                delta_F_local[j] = (oc->bs[j] - 1) * oc->ee;
+                delta_F_nominator_sum_local[j] = oc->dfn[j];
+                delta_F_local[j] = oc->df[j];
             }
         }
 

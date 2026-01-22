@@ -8,7 +8,7 @@ from define_data_and_variables import ADAMConfig, Data, adam_config, data, c_ada
 
 def main():
     base_dir = Path(__file__).parent 
-    output_dir = base_dir / f"output/{data["dn"]}/{adam_hash}"
+    output_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
     os.makedirs(output_dir, exist_ok=True)
 
     with open(os.path.join(output_dir, "adam_config.json"), "w") as f:
