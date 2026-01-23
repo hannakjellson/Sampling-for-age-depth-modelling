@@ -101,7 +101,7 @@ void adams(ADAMConfig *ac, Data *d, double *energy_out, double *samples_out)
             gsl_ran_choose(r, random_indices_for_stoch_d18O, num_d18O_points_stoch, indices_for_stoch_d18O, d->nd18o, sizeof(int));
             expected_ages(d->N, d->dc, d->cs, d->th, d->nc14, d->c14d, sed_rates, c14_depth_indices, c14_expected_ages);
             expected_ages(d->N, d->dc, d->cs, d->th, d->nd18o, d->d18od, sed_rates, D18O_depth_indices, D18O_expected_ages);
-            energy = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, 1);
+            energy = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, &d18o_energy, 1);
             if (j % 10000 == 0)
             {
                 printf("%d, %d, %f\n", i, j, energy);
