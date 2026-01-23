@@ -73,7 +73,7 @@ void pt(
         int A;
         double rej = 0;
         double alpha;
-        double *d18o_energy = malloc(sizeof(double));
+        double d18o_energy;
 
         double temp_sample;
 
@@ -109,7 +109,7 @@ void pt(
                 }
                 memcpy(momentum_init, momentum, d->N * sizeof(double));
 
-                energy_old = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, d18o_energy, pc->bs[i]);
+                energy_old = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, &d18o_energy, pc->bs[i]);
 
                 // Compute gradient at old state
                 grad_energy_function(d, c14_depth_indices, c14_expected_ages, D18O_depth_indices, D18O_expected_ages, variables, gradient, pc->bs[i]);
@@ -146,7 +146,7 @@ void pt(
                     momentum[l] -= 0.5 * pc->hmcc->dt * gradient[l];
                 }
 
-                energy_new = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, d18o_energy, pc->bs[i]);
+                energy_new = energy_function(d, c14_expected_ages, D18O_expected_ages, variables, &d18o_energy, pc->bs[i]);
 
                 kinetic_new = 0;
                 kinetic_old = 0;
@@ -184,10 +184,9 @@ void pt(
                 curr_samples[i * d->N + k] = sed_rates[k];
                 samples_out[i * pc->hmcc->ns * d->N + j * d->N + k] = sed_rates[k];
             }
-            curr_energies[i] = *d18o_energy;
+            curr_energies[i] = d18o_energy;
             energy_out[i * pc->hmcc->ns + j] = energy_new;
-            d18o_energy_out[i * pc->hmcc->ns + j] = *d18o_energy;
-
+            d18o_energy_out[i * pc->hmcc->ns + j] = d18o_energy;
 #pragma omp barrier
             if (i != pc->nt - 1)
             {
@@ -208,18 +207,16 @@ void pt(
                 }
             }
 #pragma omp barrier
-        }
-
-        for (l = 0; l < d->N; l++)
-        {
-            sed_rates[l] = curr_samples[i * d->N + l];
-            variables[l] = (log(sed_rates[l]) - d->pm) / d->ps;
+            for (l = 0; l < d->N; l++)
+            {
+                sed_rates[l] = curr_samples[i * d->N + l];
+                variables[l] = (log(sed_rates[l]) - d->pm) / d->ps;
+            }
         }
 
         mean_acceptance /= (pc->hmcc->ns * pc->nhmc);
         rej = rej / pc->hmcc->ns;
         printf("mean accept: %d, %f\n", i, mean_acceptance);
         printf("reject: %d, %f\n", i, rej);
-        free(d18o_energy);
     }
 }
