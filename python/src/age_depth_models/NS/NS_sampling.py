@@ -13,7 +13,7 @@ from jaxns.internals.mixed_precision import mp_policy
 
 tfpd = tfp.distributions
 
-def build_jaxns_model(config, data):
+def build_jaxns_model(config, data, c14_output_dir):
     # 1. SHIELD LARGE ARRAYS: stop_gradient prevents XLA from 
     # trying to 'pre-calculate' the 1,000,000 element window.
     c14_depths = jax.lax.stop_gradient(jnp.array(data["c14_depths"]))
@@ -29,12 +29,12 @@ def build_jaxns_model(config, data):
     
     delta_c = config["delta_c"]
     theta = data["theta"]
-    hash = hash_configs(config, data)
     
     @jax.jit
-    def log_likelihood(sed_rates):
+    def unconstrained_log_likelihood(sed_rates):
         # 2. OPTIMIZED CUMSUM: Avoid concatenate inside JIT where possible
         # We use a zero-padded array and set values to avoid graph fragmentation
+    
         cumsum = jnp.zeros(len(sed_rates) + 1).at[1:].set(jnp.cumsum(sed_rates))
         
         # C14 calculation
@@ -61,11 +61,16 @@ def build_jaxns_model(config, data):
         
         return l1 + l2
 
+    def log_likelihood(sed_rates):
+        logL = unconstrained_log_likelihood(sed_rates)
+        valid = jnp.all(sed_rates >= 0)
+        return jnp.where(valid, logL, -jnp.inf)
+    
     def prior_model():
         from jaxns import resample
         from jaxns.utils import load_results
 
-        results = load_results(f"output/{hash}/results_c14.json")
+        results = load_results(f"{c14_output_dir}/results_c14.json")
         samples = jnp.array(results.samples['sed_rates'])
 
         key = jax.random.PRNGKey(0)
@@ -100,8 +105,8 @@ def build_jaxns_model(config, data):
 
     return Model(prior_model=prior_model, log_likelihood=log_likelihood)
 
-def run_discovery(key, config, data):
-    model = build_jaxns_model(config, data)
+def run_discovery(key, config, data, c14_output_dir):
+    model = build_jaxns_model(config, data, c14_output_dir)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
     ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points"])
@@ -122,11 +127,16 @@ def main():
     
     key = jax.random.PRNGKey(42)
     config = get_NS_config()
+    c14_config = get_NS_config(True)
     data = get_data()
     hash = hash_configs(config, data)
+    c14_hash = hash_configs(c14_config, data)
+    c14_output_dir = f"output/{c14_hash}"
+
+    os.makedirs(f"{c14_output_dir}/{hash}", exist_ok=True)
     
-    results = run_discovery(key, config, data)
-    save_results(results, f"output/{hash}/results_d18o.json")
+    results = run_discovery(key, config, data, c14_output_dir)
+    save_results(results, f"{c14_output_dir}/{hash}/results_d18o.json")
     print("Sampling complete. Results saved.")
 
 if __name__ == "__main__":

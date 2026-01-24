@@ -110,13 +110,12 @@ def get_data():
     return data
 
 
-def get_NS_config():
+def get_NS_config(c14 = False):
     N = 50
     H = 100
     delta_c = H / N
     cs = np.linspace(0, H, N + 1)
-    num_points_c14 = 10
-    num_points = 10
+    num_points = 1000 if c14 else 1000 
     a = 1.5
     b = 0.21
     sd = 42
@@ -126,7 +125,6 @@ def get_NS_config():
         "H": H,
         "delta_c": delta_c,
         "cs": cs,
-        "num_points_c14": num_points_c14,
         "num_points": num_points,
         "a": a,
         "b": b,
@@ -166,3 +164,16 @@ def hash_configs(*configs, algo="sha256", length=10):
     h.update(canonical)
 
     return h.hexdigest()[:length]
+
+def make_dumpable(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.float32, np.float64)):
+        return float(obj)
+    if isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    if isinstance(obj, dict):
+        return {k: make_dumpable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [make_dumpable(v) for v in obj]
+    return obj

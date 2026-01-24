@@ -7,7 +7,8 @@ from jaxns import NestedSampler, Model, Prior
 import tensorflow_probability.substrates.jax as tfp
 tfd = tfp.distributions
 from jax import random, numpy as jnp
-from define_data_and_variables import get_data, get_NS_config, hash_configs
+import json
+from define_data_and_variables import get_data, get_NS_config, hash_configs, make_dumpable
 from jaxns import save_results
 from jaxns.internals.mixed_precision import mp_policy
 
@@ -19,13 +20,7 @@ def build_jaxns_model(config, data):
     c14_depths = jax.lax.stop_gradient(jnp.array(data["c14_depths"]))
     c14_ages = jax.lax.stop_gradient(jnp.array(data["c14_ages"]))
     c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14_sigma"]))
-    d18O_depths = jax.lax.stop_gradient(jnp.array(data["d18O_depths"]))
-    d18O_vals = jax.lax.stop_gradient(jnp.array(data["d18O"]))
-    d18O_sigma = jax.lax.stop_gradient(jnp.array(data["d18O_sigma"]))
     cs = jax.lax.stop_gradient(jnp.array(config["cs"]))
-    
-    ref_times = jax.lax.stop_gradient(jnp.array(data["d18O_reference_times"]))
-    ref_vals = jax.lax.stop_gradient(jnp.array(data["d18O_reference"]))
     
     delta_c = config["delta_c"]
     theta = data["theta"]
@@ -63,7 +58,7 @@ def run_discovery(key, config, data):
     model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points_c14"])
+    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points"])
 
     # Use block_until_ready to ensure the compilation warning doesn't hide errors
     print("Compiling model... this may take up to 2 minutes for 10,000 chains.")
@@ -79,7 +74,7 @@ def main():
     # Force float64 if your model needs the precision, otherwise float32 is 2-4x faster
     # jax.config.update("jax_enable_x64", True) 
     
-    config = get_NS_config()
+    config = get_NS_config(c14 = True)
     data = get_data()
 
     hash = hash_configs(config, data)
@@ -87,6 +82,14 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     key = jax.random.PRNGKey(config["sd"])
     
+    with open(os.path.join(output_dir, "c14_config.json"), "w") as f:
+        dump_config = make_dumpable(config)
+        json.dump(dump_config, f, indent=2, skipkeys=True)
+
+    with open(os.path.join(output_dir, "data.json"), "w") as f:
+        dump_data = make_dumpable(data)
+        json.dump(dump_data, f, indent=2, skipkeys=True)
+        
     results = run_discovery(key, config, data)
     save_results(results, f"{output_dir}/results_c14.json")
     print("Sampling complete. Results saved.")
