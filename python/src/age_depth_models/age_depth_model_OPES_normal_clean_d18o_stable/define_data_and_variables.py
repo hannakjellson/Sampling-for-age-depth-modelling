@@ -89,7 +89,7 @@ def dict_to_struct(d: dict, struct_type):
 def get_adam_config():
     adam_config = {
         "nsp": 100,
-        "mi": 100,
+        "mi": 10000,
         "sd": 1000,
 
         "dt": 0.00001,
@@ -102,10 +102,10 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 10000,
+        "ns": 1000,
         "sd": 1000,
 
-        "dt": 0.0008,
+        "dt": 0.0005,
 
         "sp": None,
     }
@@ -124,13 +124,13 @@ def get_opes_config():
         "ee": None,
         "dfn": None,
         "dfd": 100.0,
-        "bs": np.ascontiguousarray(1 / np.linspace(1, ebt, nt)),  # convert to list for JSON/dict
+        "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 1,
     }
     return opes_config
 
 def get_data():
-    name = "dayu06"
+    name = "dayu12A"
     N = 50
     H = 100
 
@@ -144,6 +144,28 @@ def get_data():
         d18o_timeseries = pd.read_csv(
             os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
         )
+    elif name.lower() == "dayu12a":
+        df = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212A/Dayu cave.txt"), sep="\t"
+        )
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212A/d18O_timeseries.txt"), sep="\t"
+        )
+        
+    elif name.lower() == "dayu12b":
+        df = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212B/Dayu cave.txt"), sep="\t"
+        )
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212B/d18O_timeseries.txt"), sep="\t"
+        )
+    elif name.lower() == "dayu12c":
+        df = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212C/Dayu cave.txt"), sep="\t"
+        )
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, "inputdata_260212C/d18O_timeseries.txt"), sep="\t"
+        )
 
     elif name.lower() == "dayu26":
         df = pd.read_csv(
@@ -156,9 +178,10 @@ def get_data():
     df.columns = df.columns.str.replace("%", "").str.strip()
     if d18o_timeseries is not None:
         d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
-            "%", ""
+            "% ", ""
         ).str.strip()
 
+    print(df.keys())
     depths = df["depth"].to_numpy()
     c14_ages = df["cal_c14_age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
