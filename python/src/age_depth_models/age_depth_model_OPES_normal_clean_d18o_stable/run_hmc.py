@@ -17,10 +17,10 @@ def main():
     adam_config_ee["mi"] = 10000
     adam_hash_ee = hash_configs(adam_config_ee, data)
 
-    adam_dir = base_dir / f"output/{data['dn']}/sd_{adam_config["sd"]}"
+    adam_dir = base_dir / f"output/{data['dn']}/sd_{42}"
     adam_dir_ee = base_dir / f"output/{data['dn']}/{adam_hash_ee}"
 
-    np.random.seed(adam_config["sd"])
+    np.random.seed(42)
     sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
     print(sp)
     d18o_energies = np.load(adam_dir_ee / "adam_d18o_energies.npy")
