@@ -230,17 +230,25 @@ void opes(
             d18o_energy_out[i * oc->hmcc->ns + j] = d18o_energy;
             bias_out[i * oc->hmcc->ns + j] = bias_new;
 
-            for (k = 0; k < oc->hmcc->nch; k++)
+            if (j > 100)
             {
-#pragma omp barrier
-                if (k == i)
+                for (k = 0; k < oc->hmcc->nch; k++)
                 {
-                    omp_set_lock(&deltaF_lock);
-                    *delta_F_denominator_sum_local += exp(bias_new);
-                    update_delta_F(oc->nt, oc->bs, d18o_energy, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_new, df_out, i * oc->hmcc->ns * oc->nt + j * oc->nt);
-                    omp_unset_lock(&deltaF_lock);
-                }
 #pragma omp barrier
+                    if (k == i)
+                    {
+                        omp_set_lock(&deltaF_lock);
+                        *delta_F_denominator_sum_local += exp(bias_new);
+                        update_delta_F(oc->nt, oc->bs, d18o_energy, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_new, df_out, i * oc->hmcc->ns * oc->nt + j * oc->nt);
+                        omp_unset_lock(&deltaF_lock);
+                    }
+#pragma omp barrier
+                }
+            }
+            else
+            {
+                for (k = 0; k < oc->nt; k++)
+                    df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + k] = delta_F_local[k];
             }
         }
 

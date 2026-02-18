@@ -89,7 +89,7 @@ def dict_to_struct(d: dict, struct_type):
 def get_adam_config():
     adam_config = {
         "nsp": 100,
-        "mi": 10000,
+        "mi": 100000,
         "sd": 1000,
 
         "dt": 0.00001,
@@ -102,8 +102,8 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 1000,
-        "sd": 1000,
+        "ns": 50000,
+        "sd": 10,
 
         "dt": 0.0005,
 
@@ -123,14 +123,14 @@ def get_opes_config():
         "ebt": ebt,
         "ee": None,
         "dfn": None,
-        "dfd": 100.0,
+        "dfd": 1000.0,
         "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 1,
     }
     return opes_config
 
 def get_data():
-    name = "dayu12A"
+    name = "dayu12C"
     N = 50
     H = 100
 
