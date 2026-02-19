@@ -102,10 +102,10 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 50000,
-        "sd": 10,
+        "ns": 10000,
+        "sd": 10000,
 
-        "dt": 0.0005,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -130,58 +130,72 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "dayu12C"
+    name = "dayu19A"
     N = 50
     H = 100
 
     base_path = "../../../../data/"
     d18o_timeseries = None
 
-    if name.lower() == "dayu06":
+    # if name.lower() == "dayu06":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
+    #     )
+    # elif name.lower() == "dayu12a":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212A/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212A/d18O_timeseries.txt"), sep="\t"
+    #     )
+        
+    # elif name.lower() == "dayu12b":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212B/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212B/d18O_timeseries.txt"), sep="\t"
+    #     )
+    # elif name.lower() == "dayu12c":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212C/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260212C/d18O_timeseries.txt"), sep="\t"
+    #     )
+
+    if name.lower() == "dayu19a":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
-        )
-    elif name.lower() == "dayu12a":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212A/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212A/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
         
-    elif name.lower() == "dayu12b":
+    elif name.lower() == "dayu19b":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212B/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212B/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-    elif name.lower() == "dayu12c":
+    elif name.lower() == "dayu19c":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212C/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_260212C/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
 
-    elif name.lower() == "dayu26":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/d18O_timeseries.txt"), sep="\t"
-        )
+    # df.columns = df.columns.str.replace("%", "").str.strip()
+    # if d18o_timeseries is not None:
+    #     d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
+    #         "% ", ""
+    #     ).str.strip()
 
-    df.columns = df.columns.str.replace("%", "").str.strip()
-    if d18o_timeseries is not None:
-        d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
-            "% ", ""
-        ).str.strip()
-
-    print(df.keys())
     depths = df["depth"].to_numpy()
     c14_ages = df["cal_c14_age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
@@ -193,7 +207,7 @@ def get_data():
         d18o_timeseries["Year"].to_numpy()
     )
     d18o_reference = (
-        d18o_timeseries["d18O"].to_numpy()
+        d18o_timeseries["Filtered d18O"].to_numpy()
     )
 
     c14_mask = ~np.isnan(c14_ages)

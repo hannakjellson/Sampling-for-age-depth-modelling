@@ -13,25 +13,23 @@ from scipy.spatial.distance import cdist
 
 def main():
     base_dir = Path(__file__).parent 
-    adam_config_ee = adam_config
-    adam_config_ee["mi"] = 100000
-    adam_hash_ee = hash_configs(adam_config_ee, data)
 
-    adam_dir = base_dir / f"output/{data['dn']}/sd_{opes_config['hmcc']['sd']}"
-    adam_dir_ee = base_dir / f"output/{data['dn']}/{adam_hash_ee}"
+    adam_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
+    d18o_energies = np.load(adam_dir / "adam_d18o_energies.npy")
+    print(np.min(d18o_energies))
+    # return
+
+    sp_dir = base_dir / f"output/{data['dn']}/sd_{opes_config['hmcc']['sd']}"
 
     np.random.seed(opes_config['hmcc']['sd'])
     sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
-    d18o_energies = np.load(adam_dir_ee / "adam_d18o_energies.npy")
-    print(d18o_energies[:opes_config["hmcc"]["nch"]])
-    print(sp)
 
     opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
     opes_config["df"] = 140 * (opes_config["bs"] - 1)
     opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
     # return
     opes_hash = hash_configs(opes_config, data)
-    output_dir = adam_dir / f"{opes_hash}"
+    output_dir = sp_dir / f"{opes_hash}"
     os.makedirs(output_dir, exist_ok=True)
 
     c_hmc_config = dict_to_struct(
