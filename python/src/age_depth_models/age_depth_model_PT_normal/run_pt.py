@@ -14,17 +14,15 @@ from scipy.spatial.distance import cdist
 def main():
     base_dir = Path(__file__).parent 
 
-    adam_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
 
-    sp = np.load(adam_dir / "adam_samples.npy")
-    energies = np.load(adam_dir / "adam_energies.npy")
+    sp_dir = base_dir / f"output/{data['dn']}/sd_{pt_config["hmcc"]["sd"]}"
+    np.random.seed(pt_config['hmcc']['sd'])
+    sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (pt_config["nt"], data["N"]))
 
-    indices = np.argsort(energies)
-    sp = sp[indices][:pt_config["nt"]]
     pt_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
 
     pt_hash = hash_configs(pt_config, data)
-    output_dir = adam_dir / f"{pt_hash}"
+    output_dir = sp_dir / f"{pt_hash}"
     os.makedirs(output_dir, exist_ok=True)
 
     c_hmc_config = dict_to_struct(

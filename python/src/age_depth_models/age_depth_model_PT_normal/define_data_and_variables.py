@@ -84,7 +84,7 @@ def get_adam_config():
     adam_config = {
         "nsp": 100,
         "mi": 10000,
-        "sd": 42,
+        "sd": 41,
 
         "dt": 0.00001,
         "gl": 0.00001,
@@ -105,49 +105,72 @@ def get_hmc_config():
     return hmc_config
 
 def get_pt_config():
-    hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
+    hmc_config = get_hmc_config()
     ebt = 20
-    nt = 5
+    nt = 20
 
     pt_config = {
-        "hmcc": hmc_config,  # keep the nested config as a dict
+        "hmcc": hmc_config,
         "nhmc": 1,
         "nt": nt,
         "ebt": ebt,
 
-        "bs": np.ascontiguousarray(np.geomspace(1.0, 1.0 / ebt, nt)),  # convert to list for JSON/dict
+        "bs": np.ascontiguousarray(np.geomspace(1.0, 1.0 / ebt, nt)[::-1]),  # This is not good
     }
     return pt_config
 
 def get_data():
-    name = "dayu06"
+    name = "dayu19A"
     N = 50
     H = 100
 
     base_path = "../../../../data/"
     d18o_timeseries = None
 
-    if name.lower() == "dayu06":
+    # if name.lower() == "dayu06":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_excel(
+    #         os.path.join(base_path, "inputdata_250306A/ECHAM5_d18O_Dayu_Cave.xlsx")
+    #     )
+
+    # elif name.lower() == "dayu26":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_250826/d18O_timeseries.txt"), sep="\t"
+    #     )
+
+    if name.lower() == "dayu19a":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
+        )
+        
+    elif name.lower() == "dayu19b":
+        df = pd.read_csv(
+            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
+        )
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
+        )
+    elif name.lower() == "dayu19c":
+        df = pd.read_csv(
+            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
+        )
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
 
-    elif name.lower() == "dayu26":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/d18O_timeseries.txt"), sep="\t"
-        )
-
-    df.columns = df.columns.str.replace("%", "").str.strip()
-    if d18o_timeseries is not None:
-        d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
-            "%", ""
-        ).str.strip()
+    # df.columns = df.columns.str.replace("%", "").str.strip()
+    # if d18o_timeseries is not None:
+    #     d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
+    #         "%", ""
+    #     ).str.strip()
 
     depths = df["depth"].to_numpy()
     c14_ages = df["cal_c14_age"].to_numpy()
@@ -160,7 +183,7 @@ def get_data():
         d18o_timeseries["Year"].to_numpy()
     )
     d18o_reference = (
-        d18o_timeseries["d18O"].to_numpy()
+        d18o_timeseries["Filtered d18O"].to_numpy()
     )
 
     c14_mask = ~np.isnan(c14_ages)
@@ -174,7 +197,7 @@ def get_data():
     d18o_sigma = d18o_sigma[d18o_mask][::-1]
     d18o_depths = depths[d18o_mask][
         ::-1
-    ]  # This does not overlap with the c14 depths in the file.
+    ]
     true_ages_d18O = true_ages[d18o_mask][::-1]
 
     data = {
@@ -205,7 +228,7 @@ def get_data():
         "d18ort": np.ascontiguousarray(d18o_reference_times, dtype = np.float64),
         "d18ota": np.ascontiguousarray(true_ages_d18O, dtype = np.float64),
 
-        "dn": name, # .encode("utf-8")?
+        "dn": name,
     }
 
     return data
@@ -243,7 +266,6 @@ def hash_configs(*configs, algo="sha256", length=10):
     """
     sanitized = sanitize(configs)
 
-    # Canonical JSON: sorted keys, no whitespace
     canonical = json.dumps(
         sanitized,
         sort_keys=True,
@@ -258,6 +280,7 @@ def hash_configs(*configs, algo="sha256", length=10):
 adam_config = get_adam_config()
 pt_config = get_pt_config()
 data = get_data()
+print(data)
 
 adam_hash = hash_configs(adam_config, data)
 
