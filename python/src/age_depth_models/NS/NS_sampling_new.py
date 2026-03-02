@@ -16,43 +16,36 @@ from jaxns.utils import load_results
 def build_jaxns_model(config, data, c14_output_dir):
     # 1. SHIELD LARGE ARRAYS: stop_gradient prevents XLA from 
     # trying to 'pre-calculate' the 1,000,000 element window.
-    c14_depths = jax.lax.stop_gradient(jnp.array(data["c14_depths"]))
-    c14_ages = jax.lax.stop_gradient(jnp.array(data["c14_ages"]))
-    c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14_sigma"]))
-    d18O_depths = jax.lax.stop_gradient(jnp.array(data["d18O_depths"]))
-    d18O_vals = jax.lax.stop_gradient(jnp.array(data["d18O"]))
-    d18O_sigma = jax.lax.stop_gradient(jnp.array(data["d18O_sigma"]))
-    cs = jax.lax.stop_gradient(jnp.array(config["cs"]))
+    c14_depths = jax.lax.stop_gradient(jnp.array(data["c14d"]))
+    c14_ages = jax.lax.stop_gradient(jnp.array(data["c14"]))
+    c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14s"]))
+    d18O_depths = jax.lax.stop_gradient(jnp.array(data["d18od"]))
+    d18O_vals = jax.lax.stop_gradient(jnp.array(data["d18o"]))
+    d18O_sigma = jax.lax.stop_gradient(jnp.array(data["d18os"]))
+    cs = jax.lax.stop_gradient(jnp.array(data["cs"]))
     
-    ref_times = jax.lax.stop_gradient(jnp.array(data["d18O_reference_times"]))
-    ref_vals = jax.lax.stop_gradient(jnp.array(data["d18O_reference"]))
+    ref_times = jax.lax.stop_gradient(jnp.array(data["d18ort"]))
+    ref_vals = jax.lax.stop_gradient(jnp.array(data["d18or"]))
     
-    delta_c = config["delta_c"]
-    theta = data["theta"]
+    delta_c = data["dc"]
+    theta = data["th"]
 
     
-    results = load_results(f"{c14_output_dir}/results_c14.json")
-    samples = jnp.array(results.samples['sed_rates'])
+    flattened = jnp.load(r"C:\Users\hanna\Desktop\PhD\Bacon\python\src\age_depth_models\age_depth_model_c14_normal\output\68831df8d5\samples.npy")[0, 1000:, :]
+    # samples = jnp.array(results.samples['sed_rates'])
 
     key = jax.random.PRNGKey(0)
     key, subkey = jax.random.split(key)
-    posterior_samples = resample(
-        subkey,
-        results.samples,
-        results.log_dp_mean,
-        S=len(samples)
-    )
-    posterior_samples= jnp.array(posterior_samples['sed_rates'])
 
-    flattened = posterior_samples.reshape(-1, posterior_samples.shape[-1])
     sigma_x = jnp.cov(flattened, rowvar=False)
+    print(sigma_x)
     mu_x = jnp.mean(flattened, axis = 0)
 
     dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
 
-    prior_dist = tfd.Gamma(
-        concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
-        rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
+    prior_dist = tfd.LogNormal(
+        loc=jnp.full((data["N"],), data["pm"], mp_policy.measure_dtype),
+        scale=jnp.full((data["N"],), data["ps"], mp_policy.measure_dtype)
     )
     
     @jax.jit
@@ -106,7 +99,7 @@ def run_discovery(key, config, data, c14_output_dir):
     model = build_jaxns_model(config, data, c14_output_dir)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points"])
+    ns = NestedSampler(model=model, verbose=True, num_live_points=config["np"])
 
     # Use block_until_ready to ensure the compilation warning doesn't hide errors
     print("Compiling model... this may take up to 2 minutes for 10,000 chains.")

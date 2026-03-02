@@ -4,41 +4,35 @@ import os
 import json
 import hashlib
 
-def read_data(data):
+def get_data():
+    name = "dayu19A"
+    N = 50
+    H = 100
+
     base_path = "../../../../data/"
-    D18O_timeseries = None
 
-    if data.lower() == "dayu06":
+    if name.lower() == "dayu19a":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
         )
-        D18O_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-
-    elif data.lower() == "dayu07":
+        
+    elif name.lower() == "dayu19b":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250307A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
         )
-        D18O_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250307A/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-    elif data.lower() == "dayu26":
+    elif name.lower() == "dayu19c":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
         )
-        D18O_timeseries = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/d18O_timeseries.txt"), sep="\t"
+        d18o_timeseries = pd.read_excel(
+            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-
-    elif data.lower() == "shenqi":
-        df = pd.read_csv(os.path.join(base_path, "Shenqi cave.txt"), sep="\t")
-
-    df.columns = df.columns.str.replace("%", "").str.strip()
-    if D18O_timeseries is not None:
-        D18O_timeseries.columns = D18O_timeseries.columns.str.replace(
-            "%", ""
-        ).str.strip()
 
     depths = df["depth"].to_numpy()
     c14_ages = df["cal_c14_age"].to_numpy()
@@ -48,35 +42,12 @@ def read_data(data):
     D18O_sigma = df["sigma_d18O"].to_numpy()
 
     D18O_reference_times = (
-        D18O_timeseries["Year"].to_numpy() if D18O_timeseries is not None else None
+        d18o_timeseries["Year"].to_numpy() if d18o_timeseries is not None else None
     )
     D18O_reference = (
-        D18O_timeseries["d18O"].to_numpy() if D18O_timeseries is not None else None
+        d18o_timeseries["Filtered d18O"].to_numpy() if d18o_timeseries is not None else None
     )
 
-    return (
-        depths,
-        c14_ages,
-        c14_sigma,
-        true_ages,
-        D18O,
-        D18O_sigma,
-        D18O_reference_times,
-        D18O_reference,
-    )
-
-
-def get_data():
-    (
-        depths,
-        c14_ages,
-        c14_sigma,
-        true_ages,
-        D18O,
-        D18O_sigma,
-        D18O_reference_times,
-        D18O_reference,
-    ) = read_data("dayu06")
     c14_mask = ~np.isnan(c14_ages)
     D18O_mask = ~np.isnan(D18O)
 
@@ -92,42 +63,43 @@ def get_data():
     true_ages_d18O = true_ages[D18O_mask][::-1]
 
     data = {
-        "theta": true_ages[0],
-        "c14_ages": c14_ages,
-        "c14_depths": c14_depths,
-        "c14_sigma": c14_sigma,
-        "num_c14_depths": len(c14_depths),
-        "d18O": D18O,
-        "d18O_sigma": D18O_sigma,
-        "d18O_depths": D18O_depths,
-        "d18O_reference_times": D18O_reference_times,
-        "d18O_reference": D18O_reference,
-        "num_D18O_depths": len(D18O_depths),
-        "num_D18O_reference_times": len(D18O_reference_times),
-        "true_ages_D18O": true_ages_d18O,
+        "N": N,
+        "nc14d": len(c14_depths),
+        "nd18o": len(D18O_depths),
+        "nd18or": len(D18O_reference_times),
+
+        "H": H,
+        "dc": H / N,
+        "pm": 1.71472,
+        "ps": 0.7107,
+        "th": true_ages[0],
+
+        "cs": np.ascontiguousarray(np.linspace(0, H, N + 1), dtype = np.float64),
+
+        "c14": c14_ages,
+        "c14d": c14_depths,
+        "c14s": c14_sigma,
+
+        "d18o": D18O,
+        "d18os": D18O_sigma,
+        "d18od": D18O_depths,
+
+        "d18ort": D18O_reference_times,
+        "d18or": D18O_reference,
+        "d18ota": true_ages_d18O,
+
+        "dn": name
     }
 
     return data
 
 
 def get_NS_config(c14 = False):
-    N = 50
-    H = 100
-    delta_c = H / N
-    cs = np.linspace(0, H, N + 1)
-    num_points = 1000 if c14 else 10000 
-    a = 1.5
-    b = 0.21
+    num_points = 1000 if c14 else 1000 
     sd = 42
 
     config = {
-        "N": N,
-        "H": H,
-        "delta_c": delta_c,
-        "cs": cs,
-        "num_points": num_points,
-        "a": a,
-        "b": b,
+        "np": num_points,
         "sd": sd,
     }
 

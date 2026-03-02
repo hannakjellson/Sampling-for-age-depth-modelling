@@ -17,13 +17,13 @@ tfpd = tfp.distributions
 def build_jaxns_model(config, data):
     # 1. SHIELD LARGE ARRAYS: stop_gradient prevents XLA from 
     # trying to 'pre-calculate' the 1,000,000 element window.
-    c14_depths = jax.lax.stop_gradient(jnp.array(data["c14_depths"]))
-    c14_ages = jax.lax.stop_gradient(jnp.array(data["c14_ages"]))
-    c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14_sigma"]))
-    cs = jax.lax.stop_gradient(jnp.array(config["cs"]))
+    c14_depths = jax.lax.stop_gradient(jnp.array(data["c14d"]))
+    c14_ages = jax.lax.stop_gradient(jnp.array(data["c14"]))
+    c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14s"]))
+    cs = jax.lax.stop_gradient(jnp.array(data["cs"]))
     
-    delta_c = config["delta_c"]
-    theta = data["theta"]
+    delta_c = data["dc"]
+    theta = data["th"]
     
     @jax.jit
     def log_likelihood(sed_rates):
@@ -43,9 +43,9 @@ def build_jaxns_model(config, data):
     def prior_model():
 
         alpha = yield Prior(
-            tfpd.Gamma(
-                concentration=jnp.full((config["N"],), config["a"], mp_policy.measure_dtype),
-                rate=jnp.full((config["N"],), config["b"], mp_policy.measure_dtype)
+            tfpd.LogNormal(
+                loc=jnp.full((data["N"],), data["pm"], mp_policy.measure_dtype),
+                scale=jnp.full((data["N"],), data["ps"], mp_policy.measure_dtype)
             ),
             name="sed_rates"
         )
@@ -58,7 +58,7 @@ def run_discovery(key, config, data):
     model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["num_points"])
+    ns = NestedSampler(model=model, verbose=True, num_live_points=config["np"])
 
     # Use block_until_ready to ensure the compilation warning doesn't hide errors
     print("Compiling model... this may take up to 2 minutes for 10,000 chains.")
