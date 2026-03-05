@@ -16,7 +16,7 @@
 #include "configs.h"
 
 void pt(
-    PTConfig *pc, Data *d, double *samples_out, double *energy_out, double *d18o_energy_out)
+    PTConfig *pc, Data *d, double *samples_out, double *energy_out, double *d18o_energy_out, int *temp_indices_out)
 {
     int i;
     int c14_depth_indices[d->nc14];
@@ -34,6 +34,12 @@ void pt(
 
     double curr_samples[pc->nt * d->N];
     double curr_energies[pc->nt];
+    double temp_index;
+
+    for (i = 0; i < pc->nt; i++)
+    {
+        temp_indices_out[i * (pc->hmcc->ns + 1)] = i;
+    }
 
 #pragma omp parallel num_threads(pc->nt)
     {
@@ -187,6 +193,7 @@ void pt(
             curr_energies[i] = d18o_energy;
             energy_out[i * pc->hmcc->ns + j] = energy_new;
             d18o_energy_out[i * pc->hmcc->ns + j] = d18o_energy;
+            temp_indices_out[i * (pc->hmcc->ns + 1) + j + 1] = temp_indices_out[i * (pc->hmcc->ns + 1) + j];
 #pragma omp barrier
             if (i != pc->nt - 1)
             {
@@ -203,6 +210,9 @@ void pt(
                             curr_samples[i * d->N + l] = curr_samples[(i + 1) * d->N + l];
                             curr_samples[(i + 1) * d->N + l] = temp_sample;
                         }
+                        temp_index = temp_indices_out[i * (pc->hmcc->ns + 1) + j + 1];
+                        temp_indices_out[i * (pc->hmcc->ns + 1) + j + 1] = temp_indices_out[(i + 1) * (pc->hmcc->ns + 1) + j + 1];
+                        temp_indices_out[(i + 1) * (pc->hmcc->ns + 1) + j + 1] = temp_index;
                     }
                 }
             }

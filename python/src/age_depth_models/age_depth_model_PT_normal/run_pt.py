@@ -58,15 +58,18 @@ def main():
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # d18o_energy_out
+        ctypes.POINTER(ctypes.c_int),  # temperature_indices
     ]
 
     lib.pt.restype = None
 
     total = pt_config["nt"] * pt_config["hmcc"]["ns"]
+    total_plus = total + pt_config["nt"]
     total_times_N = total * data["N"]
     samples_out = (ctypes.c_double * total_times_N)()
     energy_out = (ctypes.c_double * total)()
     d18o_energy_out = (ctypes.c_double * total)()
+    temp_indices_out = (ctypes.c_int * (total_plus))()
 
     lib.pt(
         ctypes.byref(c_pt_config),
@@ -74,6 +77,7 @@ def main():
         samples_out,
         energy_out,
         d18o_energy_out,
+        temp_indices_out,
     )
 
     samples = np.ctypeslib.as_array(samples_out)
@@ -90,6 +94,11 @@ def main():
     d18o_energy_values = np.reshape(d18o_energy_values, (pt_config["nt"], pt_config["hmcc"]["ns"]))
     outdir_d18o_energy = output_dir / "d18o_energy.npy"
     np.save(outdir_d18o_energy, d18o_energy_values)
+
+    temp_indices = np.ctypeslib.as_array(temp_indices_out)
+    temp_indices = np.reshape(temp_indices, (pt_config["nt"], pt_config["hmcc"]["ns"] + 1))
+    outdir_temp_indices = output_dir / "temp_indices.npy"
+    np.save(outdir_temp_indices, temp_indices)
 
     print("------Done sampling------")
 
