@@ -1,6 +1,6 @@
 import os
 # BREAK THE COMPILER HANG: Disable aggressive folding of large windows
-os.environ['XLA_FLAGS'] = "--xla_disable_hlo_passes=constant_folding,simplify-reduction"
+# os.environ['XLA_FLAGS'] = "--xla_disable_hlo_passes=constant_folding,simplify-reduction"
 
 import jax
 from jaxns import NestedSampler, Model, Prior
@@ -10,8 +10,6 @@ from jax import random, numpy as jnp
 from define_data_and_variables import get_data, get_NS_config, hash_configs
 from jaxns import save_results
 from jaxns.internals.mixed_precision import mp_policy
-from jaxns import resample
-from jaxns.utils import load_results
 
 def build_jaxns_model(config, data):
     # 1. SHIELD LARGE ARRAYS: stop_gradient prevents XLA from 
