@@ -5,7 +5,7 @@ import json
 import hashlib
 
 def get_data():
-    name = "dayu19A"
+    name = "dayu19B"
     N = 50
     H = 100
 
@@ -95,12 +95,17 @@ def get_data():
 
 
 def get_NS_config(c14 = False):
-    num_points = 1000 if c14 else 1000 
-    sd = 42
+    num_points = 1000 if c14 else 100
+    sd = 60
+    difficult_model = True
+    gradient_guided = True
+
 
     config = {
         "np": num_points,
         "sd": sd,
+        "gg": gradient_guided,
+        "dm": difficult_model,
     }
 
     return config

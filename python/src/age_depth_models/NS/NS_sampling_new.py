@@ -13,35 +13,33 @@ from jaxns.internals.mixed_precision import mp_policy
 from jaxns import resample
 from jaxns.utils import load_results
 
-def build_jaxns_model(config, data, c14_output_dir):
+def build_jaxns_model(config, data):
     # 1. SHIELD LARGE ARRAYS: stop_gradient prevents XLA from 
     # trying to 'pre-calculate' the 1,000,000 element window.
-    c14_depths = jax.lax.stop_gradient(jnp.array(data["c14d"]))
-    c14_ages = jax.lax.stop_gradient(jnp.array(data["c14"]))
-    c14_sigma = jax.lax.stop_gradient(jnp.array(data["c14s"]))
-    d18O_depths = jax.lax.stop_gradient(jnp.array(data["d18od"]))
-    d18O_vals = jax.lax.stop_gradient(jnp.array(data["d18o"]))
-    d18O_sigma = jax.lax.stop_gradient(jnp.array(data["d18os"]))
-    cs = jax.lax.stop_gradient(jnp.array(data["cs"]))
+    c14_depths = jnp.array(data["c14d"])
+    c14_ages = jnp.array(data["c14"])
+    c14_sigma = jnp.array(data["c14s"])
+    d18O_depths = jnp.array(data["d18od"])
+    d18O_vals = jnp.array(data["d18o"])
+    d18O_sigma = jnp.array(data["d18os"])
+    cs = jnp.array(data["cs"])
     
-    ref_times = jax.lax.stop_gradient(jnp.array(data["d18ort"]))
-    ref_vals = jax.lax.stop_gradient(jnp.array(data["d18or"]))
+    ref_times = jnp.array(data["d18ort"])
+    ref_vals = jnp.array(data["d18or"])
     
     delta_c = data["dc"]
     theta = data["th"]
 
     
-    flattened = jnp.load(r"C:\Users\hanna\Desktop\PhD\Bacon\python\src\age_depth_models\age_depth_model_c14_normal\output\68831df8d5\samples.npy")[0, 1000:, :]
-    # samples = jnp.array(results.samples['sed_rates'])
+    # flattened = jnp.load(r"C:\Users\hanna\Desktop\PhD\Bacon\python\src\age_depth_models\age_depth_model_c14_normal\output\68831df8d5\samples.npy")[0, 1000:, :]
 
-    key = jax.random.PRNGKey(0)
-    key, subkey = jax.random.split(key)
+    # key = jax.random.PRNGKey(config["sd"])
+    # key, subkey = jax.random.split(key)
 
-    sigma_x = jnp.cov(flattened, rowvar=False)
-    print(sigma_x)
-    mu_x = jnp.mean(flattened, axis = 0)
+    # sigma_x = jnp.cov(flattened, rowvar=False)
+    # mu_x = jnp.mean(flattened, axis = 0)
 
-    dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
+    # dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
 
     prior_dist = tfd.LogNormal(
         loc=jnp.full((data["N"],), data["pm"], mp_policy.measure_dtype),
@@ -49,10 +47,7 @@ def build_jaxns_model(config, data, c14_output_dir):
     )
     
     @jax.jit
-    def unconstrained_log_likelihood(sed_rates):
-        # 2. OPTIMIZED CUMSUM: Avoid concatenate inside JIT where possible
-        # We use a zero-padded array and set values to avoid graph fragmentation
-    
+    def log_likelihood(sed_rates):
         cumsum = jnp.zeros(len(sed_rates) + 1).at[1:].set(jnp.cumsum(sed_rates))
         
         # C14 calculation
@@ -67,27 +62,15 @@ def build_jaxns_model(config, data, c14_output_dir):
         d18_times = (theta - cumsum[indices_d18] * delta_c 
                      - sed_rates[indices_d18] * (d18O_depths - cs[indices_d18]))
         
-        # Interpolation with safe clipping
-        interp_indices = jnp.clip(jnp.searchsorted(ref_times, d18_times, side="right") - 1, 0, len(ref_times) - 2)
-        t0, t1 = ref_times[interp_indices], ref_times[interp_indices + 1]
-        v0, v1 = ref_vals[interp_indices], ref_vals[interp_indices + 1]
-        
-        # Vectorized interpolation
-        expected_D18O = v0 + (v1 - v0) / (t1 - t0) * (d18_times - t0)
+        expected_D18O = jnp.interp(d18_times, ref_times, ref_vals)
         
         l2 = jnp.sum(jax.scipy.stats.norm.logpdf(d18O_vals, loc=expected_D18O, scale=d18O_sigma))
 
-        return l1+ l2 + jnp.sum(jnp.log(prior_dist.prob(sed_rates))) - jnp.sum(jnp.log(dist.prob(sed_rates)))
-
-    def log_likelihood(sed_rates):
-        logL = unconstrained_log_likelihood(sed_rates)
-        valid = jnp.all(sed_rates >= 0)
-        return jnp.where(valid, logL, -jnp.inf)
+        return l1 + l2
     
     def prior_model():
-
         alpha = yield Prior(
-            dist, 
+            prior_dist, 
             name='sed_rates'
         )
 
@@ -95,19 +78,13 @@ def build_jaxns_model(config, data, c14_output_dir):
 
     return Model(prior_model=prior_model, log_likelihood=log_likelihood)
 
-def run_discovery(key, config, data, c14_output_dir):
-    model = build_jaxns_model(config, data, c14_output_dir)
+def run_discovery(key, config, data):
+    model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["np"])
-
-    # Use block_until_ready to ensure the compilation warning doesn't hide errors
-    print("Compiling model... this may take up to 2 minutes for 10,000 chains.")
-    nsj = jax.jit(ns.__call__)
+    ns = NestedSampler(model=model, verbose=True, num_live_points=config["np"], gradient_guided=config["gg"], difficult_model = config["dm"], devices = jax.devices('cpu'))
     
-    termination_reason, state = nsj(key)
-    # Force GPU to finish before Python continues
-    jax.block_until_ready(state)
+    termination_reason, state = ns(key)
     
     return ns.to_results(termination_reason=termination_reason, state=state)
 
@@ -115,18 +92,16 @@ def main():
     # Force float64 if your model needs the precision, otherwise float32 is 2-4x faster
     # jax.config.update("jax_enable_x64", True) 
     
-    key = jax.random.PRNGKey(42)
     config = get_NS_config()
-    c14_config = get_NS_config(True)
     data = get_data()
     hash = hash_configs(config, data)
-    c14_hash = hash_configs(c14_config, data)
-    c14_output_dir = f"output/{c14_hash}"
+    sd_output_dir = f"output/sd_{config["sd"]}"
 
-    os.makedirs(f"{c14_output_dir}/{hash}", exist_ok=True)
+    os.makedirs(f"{sd_output_dir}/{hash}", exist_ok=True)
+    key = jax.random.PRNGKey(config["sd"])
     
-    results = run_discovery(key, config, data, c14_output_dir)
-    save_results(results, f"{c14_output_dir}/{hash}/results_d18o.json")
+    results = run_discovery(key, config, data)
+    save_results(results, f"{sd_output_dir}/{hash}/results_d18o.json")
     print("Sampling complete. Results saved.")
 
 if __name__ == "__main__":
