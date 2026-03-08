@@ -29,23 +29,24 @@ def build_jaxns_model(config, data):
     theta = data["th"]
 
     
-    # flattened = jnp.load(r"C:\Users\hanna\Desktop\PhD\Bacon\python\src\age_depth_models\age_depth_model_c14_normal\output\68831df8d5\samples.npy")[0, 1000:, :]
+    flattened = jnp.load(r"../age_depth_model_c14_normal/output/68831df8d5/samples.npy")[0, 1000:, :]
 
-    # key = jax.random.PRNGKey(config["sd"])
-    # key, subkey = jax.random.split(key)
+    key = jax.random.PRNGKey(config["sd"])
+    key, subkey = jax.random.split(key)
 
-    # sigma_x = jnp.cov(flattened, rowvar=False)
-    # mu_x = jnp.mean(flattened, axis = 0)
+    sigma_x = jnp.cov(flattened, rowvar=False)
+    mu_x = jnp.mean(flattened, axis = 0)
+    L_w = jnp.linalg.cholesky(sigma_x + jnp.eye(data["N"]) * 1e-6)
 
-    # dist = tfd.MultivariateNormalFullCovariance(loc=mu_x, covariance_matrix=sigma_x)
+    new_prior_dist = tfd.MultivariateNormalTriL(mu_x, L_w)
 
-    prior_dist = tfd.LogNormal(
+    orig_prior_dist = tfd.LogNormal(
         loc=jnp.full((data["N"],), data["pm"], mp_policy.measure_dtype),
         scale=jnp.full((data["N"],), data["ps"], mp_policy.measure_dtype)
     )
     
     @jax.jit
-    def log_likelihood(sed_rates):
+    def original_log_likelihood(sed_rates):
         cumsum = jnp.zeros(len(sed_rates) + 1).at[1:].set(jnp.cumsum(sed_rates))
         
         # C14 calculation
@@ -66,13 +67,25 @@ def build_jaxns_model(config, data):
 
         return l1 + l2
     
-    def prior_model():
-        alpha = yield Prior(
-            prior_dist, 
-            name='sed_rates'
-        )
+    def log_likelihood(sed_rates):
+        logL = original_log_likelihood(sed_rates)
+        new_log_prior = new_prior_dist.log_prob(sed_rates).sum()
+        orig_log_prior = orig_prior_dist.log_prob(sed_rates).sum()
+        return logL + orig_log_prior - new_log_prior
 
-        return alpha
+    
+    def prior_model():
+        z = yield Prior(tfd.MultivariateNormalDiag(loc = jnp.zeros(data["N"]), scale_diag = jnp.ones([data["N"]])), name = "z")
+
+        sed_rates_val = mu_x + jnp.dot(L_w, z)
+        sed_rates = yield Prior(sed_rates_val, name="sed_rates")
+
+        # alpha = yield Prior(
+        #     prior_dist, 
+        #     name='sed_rates'
+        # )
+
+        return sed_rates
 
     return Model(prior_model=prior_model, log_likelihood=log_likelihood)
 
@@ -80,8 +93,22 @@ def run_discovery(key, config, data):
     model = build_jaxns_model(config, data)
     
     # 10,000 points is great for 50D multimodal, but let's monitor VRAM
-    ns = NestedSampler(model=model, verbose=True, num_live_points=config["np"], gradient_guided=config["gg"], difficult_model = config["dm"], devices = jax.devices('cpu'))
-    
+    ns = NestedSampler(
+        model=model,
+        num_live_points=config["np"], # Lower this for now to speed up testing
+        verbose = True,
+        # s=config["s"],                # Much higher exploration per step
+        # k = config["k"],
+        difficult_model=config["dm"], 
+        gradient_guided=config["gg"], # Try False first to ensure gradients aren't the issue
+        parameter_estimation=config["pm"],
+        # init_efficiency_threshold=config["iet"]
+        # init_efficiency_threshold=0.05,
+        # shell_fraction=0.7     # Allow wider jumps
+    )
+
+    print(ns.k)
+    print(ns.num_live_points)
     termination_reason, state = ns(key)
     
     return ns.to_results(termination_reason=termination_reason, state=state)

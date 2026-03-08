@@ -95,10 +95,14 @@ def get_data():
 
 
 def get_NS_config(c14 = False):
-    num_points = 1000 if c14 else 100
+    num_points = 1000 if c14 else 1000
     sd = 60
     difficult_model = True
     gradient_guided = True
+    parameter_estimation = False
+    s = 10
+    k = 5
+    init_effiiency_threshold = 0.01
 
 
     config = {
@@ -106,6 +110,10 @@ def get_NS_config(c14 = False):
         "sd": sd,
         "gg": gradient_guided,
         "dm": difficult_model,
+        "pm" : parameter_estimation,
+        "s": s,
+        "k": k,
+        "iet": init_effiiency_threshold,
     }
 
     return config
