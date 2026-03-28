@@ -57,7 +57,6 @@ bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 weights = np.exp(bias_values)
-weights /= np.sum(weights)
 
 chain = 0
 index = 25
@@ -144,10 +143,10 @@ cbar = plt.colorbar(im)
 cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
-plt.savefig(f"{output_dir}/age_depth_fig_anders.jpg")
-np.save(f"{output_dir}/C_anders", C)
+plt.savefig(f"{output_dir}/age_depth_fig_anders_new.jpg")
+np.save(f"{output_dir}/C_anders_new", C)
 print(np.shape(var_est))
-np.save(f"{output_dir}/var_est_anders", var_est)
+np.save(f"{output_dir}/var_est_anders_new", var_est)
 
 
 ns = len(samples[0, :, 0])
@@ -219,25 +218,13 @@ im = ax.imshow(
     # vmax=0.01 * N,
     norm=colors.LogNorm()
 )
-print(np.nanmax(C))
-print(np.nanmin(C))
 
 plt.legend(loc = "upper right")
 cbar = plt.colorbar(im)
 cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
-# plt.show()
-
-# plt.bar(np.arange(0, len(C[500, :])), C[500, :], width=1, align='edge', 
-#         edgecolor='black', alpha=0.7)
-
-# plt.xlabel('Age')
-# plt.ylabel('Probability / Count')
-# plt.title('Age Distribution at Depth z')
-# plt.show()
-plt.savefig(f"{output_dir}/age_depth_fig_opes.jpg")
-np.save(f"{output_dir}/C_opes", C)
-print(np.shape(var_est))
-np.save(f"{output_dir}/var_est_opes", var_est)
+plt.savefig(f"{output_dir}/age_depth_fig_opes_new.jpg")
+np.save(f"{output_dir}/C_opes_new", C)
+np.save(f"{output_dir}/var_est_opes_new", var_est)
 
