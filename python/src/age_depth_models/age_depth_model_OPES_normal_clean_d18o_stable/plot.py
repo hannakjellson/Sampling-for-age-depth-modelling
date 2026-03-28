@@ -57,6 +57,7 @@ bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 weights = np.exp(bias_values)
+weights /= np.sum(weights)
 
 chain = 0
 index = 25
@@ -64,85 +65,85 @@ interesting_depth = index * data["dc"]
 dt = 1
 print(np.shape(weights))
 block_size = int(len(samples[chain, :, 0])/5000)
+ns = len(samples[0, :, 0])
+age = np.hstack([
+    np.ones((ns, 1)) * data["th"],
+    data["th"] - data["dc"] * np.cumsum(samples[chain, :, :], axis=1)
+])
 
-# ns = len(samples[0, :, 0])
-# age = np.hstack([
-#     np.ones((ns, 1)) * data["th"],
-#     data["th"] - data["dc"] * np.cumsum(samples[chain, :, :], axis=1)
-# ])
+# Depth interpolation grid
+dz = 0.1
+z = np.arange(0, data["H"] + dz, dz)
+Z = z.size
 
-# # Depth interpolation grid
-# dz = 0.1
-# z = np.arange(0, data["H"] + dz, dz)
-# Z = z.size
+t_edges = [1200, 2000]
 
-# t_edges = [1200, 2000]
-
-# K = int(len(samples[0, :, 0])/block_size)
-# C = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
-# for i in range(0, Z):
-#     hists = []
-#     ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
-#     print(np.ceil(np.max(ages)))
-#     bins = np.arange(np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1, dtype = int)
-#     if bins.size < 2:
-#         bins = np.array([np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1], dtype = int)
-#         print("hi")
+K = int(ns/block_size)
+C = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
+for i in range(0, Z):
+    hists = []
+    ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
+    bins = np.arange(np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1, dtype = int)
+    if bins.size < 2:
+        bins = np.array([np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1], dtype = int)
+        print("hi")
     
-#     print(ages)
-#     print(f"bins:{bins}")
-#     bin_indices = np.digitize(ages, bins) - 1
-#     num_bins = len(bins) - 1
+    print(ages)
+    print(f"bins:{bins}")
+    bin_indices = np.digitize(ages, bins) - 1
+    num_bins = len(bins) - 1
 
-#     for b in range(num_bins):
-#         hists.append(np.sum(weights[chain, bin_indices == b]))
+    for b in range(num_bins):
+        hists.append(np.sum(weights[chain, bin_indices == b]))
 
-#     full_hist = np.array(hists / (np.sum(weights[chain])))
+    full_hist = np.array(hists)
 
-#     block_hists = np.zeros((K, num_bins))
-#     for k in range(K):
-#         start, end = k * block_size, (k + 1) * block_size
-#         # Slice the block's indices and weights
-#         b_idx = bin_indices[start:end]
-#         b_w = weights[chain, start:end]
+    block_hists = np.zeros((K, num_bins))
+    block_weight_sum = np.zeros((K))
+    for k in range(K):
+        start, end = k * block_size, (k + 1) * block_size
+        # Slice the block's indices and weights
+        b_idx = bin_indices[start:end]
+        b_w = weights[chain, start:end]
+        block_weight_sum[k] = np.sum(b_w)
         
-#         # Sum weights in this block
-#         for b in range(num_bins):
-#             block_hists[k, b] = np.sum(b_w[b_idx == b])
+        # Sum weights in this block
+        for b in range(num_bins):
+            block_hists[k, b] = np.sum(b_w[b_idx == b])
 
-#     loo_results = full_hist - block_hists
-#     norm_loo_results  = loo_results / (np.sum(weights[chain]) - np.array([np.sum(weights[chain, k*block_size:(k+1)*block_size]) for k in range(K)])[:, None])
-#     jackknife_est = ns * full_hist - (ns - 1) * np.mean(norm_loo_results, axis=0)
-#     C[i, bins[:-1]-t_edges[0]] = jackknife_est
-#     print(i/Z)
+    loo_results = full_hist - block_hists
+    norm_loo_results  = loo_results / (np.sum(weights[chain]) - block_weight_sum[:, None])
+    jackknife_est = K * full_hist / np.sum(weights[chain]) - (K - 1) * np.mean(norm_loo_results, axis=0)
+    C[i, bins[:-1]-t_edges[0]] = jackknife_est
+    print(i/Z)
 
-# fig, ax = plt.subplots(figsize=(6, 4))
-# plt.set_cmap(plt.cm.Greys)
-# for i, c in enumerate(data["cs"]):
-#     if i ==index: 
-#         ax.axvline(x=c, color='k', linestyle='--', linewidth = 1, label = f"d = {int(interesting_depth)} mm")
-#     else:
-#         ax.axvline(x=c, color='k', linestyle='--', linewidth = 0.1)
+fig, ax = plt.subplots(figsize=(6, 4))
+plt.set_cmap(plt.cm.Greys)
+for i, c in enumerate(data["cs"]):
+    if i ==index: 
+        ax.axvline(x=c, color='k', linestyle='--', linewidth = 1, label = f"d = {int(interesting_depth)} mm")
+    else:
+        ax.axvline(x=c, color='k', linestyle='--', linewidth = 0.1)
 
-# ax.plot(data["c14d"], np.squeeze(data["c14"]), "ko", markersize=4, label = r"$^{230}Th$")
-# ax.plot(data["cs"], true_ages, color = data_color, linewidth=3, alpha = 0.2, label = data_name + "(d)")
-# im = ax.imshow(
-#     C.T,
-#     extent=[z[0], z[-1], t_edges[0], t_edges[-1]],
-#     origin='lower',
-#     aspect='auto',
-#     # vmin=0,
-#     # vmax=0.01 * N,
-#     norm=colors.LogNorm()
-# )
+ax.plot(data["c14d"], np.squeeze(data["c14"]), "ko", markersize=4, label = r"$^{230}Th$")
+ax.plot(data["cs"], true_ages, color = data_color, linewidth=3, alpha = 0.2, label = data_name + "(d)")
+im = ax.imshow(
+    C.T,
+    extent=[z[0], z[-1], t_edges[0], t_edges[-1]],
+    origin='lower',
+    aspect='auto',
+    # vmin=0,
+    # vmax=0.01 * N,
+    norm=colors.LogNorm()
+)
 
-# plt.legend(loc = "upper right")
-# cbar = plt.colorbar(im)
-# cbar.set_label("Marginal Density")
-# plt.xlabel("Distance from top of stalagmite [mm]")
-# plt.ylabel("Year CE")
-# plt.savefig(f"{output_dir}/resampled_no_mean.jpg")
-# np.save(f"{output_dir}/C_anders.npz", C)
+plt.legend(loc = "upper right")
+cbar = plt.colorbar(im)
+cbar.set_label("Marginal Density")
+plt.xlabel("Distance from top of stalagmite [mm]")
+plt.ylabel("Year CE")
+plt.savefig(f"{output_dir}/resampled_no_mean.jpg")
+np.save(f"{output_dir}/C_anders.npz", C)
 
 
 ns = len(samples[0, :, 0])
@@ -151,7 +152,7 @@ age = np.hstack([
     data["th"] - data["dc"] * np.cumsum(samples[chain, :, :], axis=1)
 ])
 
-# Depth interpolation grid
+# # Depth interpolation grid
 dz = 0.1
 z = np.arange(0, data["H"] + dz, dz)
 Z = z.size
@@ -187,9 +188,9 @@ for i in range(0, Z):
         
         # Sum weights in this block
         for b in range(num_bins):
-            block_hists[k, b] = np.sum(b_w[b_idx == b])/np.sum(block_weights_sum)
+            block_hists[k, b] = np.sum(b_w[b_idx == b])/np.sum(block_weights_sum[k])
 
-    est = block_weights_sum@block_hists
+    est = block_weights_sum@block_hists/(np.sum(weights[chain]))
     meff = np.sum(block_weights_sum)**2 / np.sum(block_weights_sum**2)
     var_est.append(meff * block_weights_sum @ (block_hists - full_hist)**2 / ((meff - 1) *np.sum(block_weights_sum)))
     C[i, bins[:-1]-t_edges[0]] = est
@@ -212,14 +213,27 @@ im = ax.imshow(
     aspect='auto',
     # vmin=0,
     # vmax=0.01 * N,
-    norm=colors.LogNorm()
+    norm=colors.LogNorm(1, 100)
 )
+print(np.nanmax(C))
+print(np.nanmin(C))
 
 plt.legend(loc = "upper right")
 cbar = plt.colorbar(im)
 cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
+# plt.show()
+
+# plt.bar(np.arange(0, len(C[500, :])), C[500, :], width=1, align='edge', 
+#         edgecolor='black', alpha=0.7)
+
+# plt.xlabel('Age')
+# plt.ylabel('Probability / Count')
+# plt.title('Age Distribution at Depth z')
+# plt.show()
 plt.savefig(f"{output_dir}/resampled_no_mean_other.jpg")
 np.save(f"{output_dir}/C_opes", C)
+print(np.shape(np.array(var_est)))
+np.save(f"{output_dir}/var_est_opes", np.array(var_est))
 
