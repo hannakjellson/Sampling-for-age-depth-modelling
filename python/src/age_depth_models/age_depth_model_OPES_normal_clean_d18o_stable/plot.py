@@ -115,7 +115,7 @@ for i in range(0, Z):
     norm_loo_results  = loo_results / (np.sum(weights[chain]) - block_weight_sum[:, None])
     jackknife_est = K * full_hist / np.sum(weights[chain]) - (K - 1) * np.mean(norm_loo_results, axis=0)
     C[i, bins[:-1]-t_edges[0]] = jackknife_est
-    var_est[i, bins[:-1]-t_edges[0]]  = (K-1) * np.sum((loo_results - jackknife_est)**2, axis = 0) / K
+    var_est[i, bins[:-1]-t_edges[0]]  = (K-1) * np.sum((norm_loo_results - jackknife_est)**2, axis = 0) / K
     print(i/Z)
 
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -191,7 +191,7 @@ for i in range(0, Z):
         
         # Sum weights in this block
         for b in range(num_bins):
-            block_hists[k, b] = np.sum(b_w[b_idx == b])/np.sum(block_weights_sum[k])
+            block_hists[k, b] = np.sum(b_w[b_idx == b])/block_weights_sum[k]
 
     est = block_weights_sum@block_hists/(np.sum(weights[chain]))
     meff = np.sum(block_weights_sum)**2 / np.sum(block_weights_sum**2)
