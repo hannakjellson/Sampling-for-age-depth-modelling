@@ -80,6 +80,7 @@ t_edges = [1200, 2000]
 
 K = int(ns/block_size)
 C = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
+var_est = np.zeros((Z, t_edges[-1] - t_edges[0]))
 for i in range(0, Z):
     hists = []
     ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
@@ -115,6 +116,7 @@ for i in range(0, Z):
     norm_loo_results  = loo_results / (np.sum(weights[chain]) - block_weight_sum[:, None])
     jackknife_est = K * full_hist / np.sum(weights[chain]) - (K - 1) * np.mean(norm_loo_results, axis=0)
     C[i, bins[:-1]-t_edges[0]] = jackknife_est
+    var_est[i, bins[:-1]-t_edges[0]]  = (K-1) * np.sum((loo_results - jackknife_est)**2, axis = 0) / K
     print(i/Z)
 
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -142,8 +144,10 @@ cbar = plt.colorbar(im)
 cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
-plt.savefig(f"{output_dir}/resampled_no_mean.jpg")
+plt.savefig(f"{output_dir}/age_depth_fig_anders.jpg")
 np.save(f"{output_dir}/C_anders", C)
+print(np.shape(var_est))
+np.save(f"{output_dir}/var_est_anders", var_est)
 
 
 ns = len(samples[0, :, 0])
@@ -161,7 +165,7 @@ t_edges = [1200, 2000]
 
 K = int(len(samples[0, :, 0])/block_size)
 C = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
-var_est = []
+var_est = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
 for i in range(0, Z):
     hists = []
     ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
@@ -192,7 +196,7 @@ for i in range(0, Z):
 
     est = block_weights_sum@block_hists/(np.sum(weights[chain]))
     meff = np.sum(block_weights_sum)**2 / np.sum(block_weights_sum**2)
-    var_est.append(meff * block_weights_sum @ (block_hists - full_hist)**2 / ((meff - 1) *np.sum(block_weights_sum)))
+    var_est[i, bins[:-1]-t_edges[0]] = (meff * block_weights_sum @ (block_hists - full_hist)**2 / ((meff - 1) *np.sum(block_weights_sum)))
     C[i, bins[:-1]-t_edges[0]] = est
     print(i/Z)
 
@@ -232,8 +236,8 @@ plt.ylabel("Year CE")
 # plt.ylabel('Probability / Count')
 # plt.title('Age Distribution at Depth z')
 # plt.show()
-plt.savefig(f"{output_dir}/resampled_no_mean_other.jpg")
+plt.savefig(f"{output_dir}/age_depth_fig_opes.jpg")
 np.save(f"{output_dir}/C_opes", C)
-print(np.shape(np.array(var_est)))
-np.save(f"{output_dir}/var_est_opes", np.array(var_est))
+print(np.shape(var_est))
+np.save(f"{output_dir}/var_est_opes", var_est)
 
