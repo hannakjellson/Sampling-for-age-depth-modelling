@@ -164,7 +164,6 @@ var_est = []
 for i in range(0, Z):
     hists = []
     ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
-    print(np.ceil(np.max(ages)))
     bins = np.arange(np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1, dtype = int)
     if bins.size < 2:
         bins = np.array([np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1], dtype = int)
@@ -188,9 +187,9 @@ for i in range(0, Z):
         
         # Sum weights in this block
         for b in range(num_bins):
-            block_hists[k, b] = np.sum(b_w[b_idx == b])
+            block_hists[k, b] = np.sum(b_w[b_idx == b])/np.sum(block_weights_sum)
 
-    est = block_weights_sum@block_hists/np.sum(block_weights_sum)
+    est = block_weights_sum@block_hists
     meff = np.sum(block_weights_sum)**2 / np.sum(block_weights_sum**2)
     var_est.append(meff * block_weights_sum @ (block_hists - full_hist)**2 / ((meff - 1) *np.sum(block_weights_sum)))
     C[i, bins[:-1]-t_edges[0]] = est
