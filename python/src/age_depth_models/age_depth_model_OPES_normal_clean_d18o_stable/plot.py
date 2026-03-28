@@ -143,7 +143,7 @@ cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
 plt.savefig(f"{output_dir}/resampled_no_mean.jpg")
-np.save(f"{output_dir}/C_anders.npz", C)
+np.save(f"{output_dir}/C_anders", C)
 
 
 ns = len(samples[0, :, 0])
@@ -213,7 +213,7 @@ im = ax.imshow(
     aspect='auto',
     # vmin=0,
     # vmax=0.01 * N,
-    norm=colors.LogNorm(1, 100)
+    norm=colors.LogNorm()
 )
 print(np.nanmax(C))
 print(np.nanmin(C))
