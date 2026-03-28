@@ -55,7 +55,7 @@ weights = np.exp(bias_values)
 index = 25
 interesting_depth = index * data["dc"]
 dt = 1
-block_size = int(len(samples[0, :, 0])/5000)
+K = 100
 
 flat_samples = samples.reshape(-1, data["N"])
 flat_weights = weights.reshape(-1)
@@ -73,7 +73,7 @@ Z = z.size
 
 t_edges = [1200, 2000]
 
-K = int(ns/block_size)
+block_size = int(ns/K)
 C_jackknife = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
 C_opes = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
 sigma_est_jackknife = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
