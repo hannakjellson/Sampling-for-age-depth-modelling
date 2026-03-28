@@ -167,7 +167,7 @@ for i in range(1, Z):
     print(np.ceil(np.max(ages)))
     bins = np.arange(np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1, dtype = int)
     if bins.size < 2:
-        bins = np.array(np.floor(np.min(ages)), np.floor(np.min(ages)) + 1)
+        bins = np.array([np.floor(np.min(ages)), np.ceil(np.max(ages)) + 1])
     
     bin_indices = np.digitize(ages, bins) - 1
     num_bins = len(bins) - 1
