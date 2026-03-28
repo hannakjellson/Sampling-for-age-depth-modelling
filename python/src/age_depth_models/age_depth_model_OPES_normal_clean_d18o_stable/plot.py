@@ -161,7 +161,7 @@ t_edges = [1200, 2000]
 K = int(len(samples[0, :, 0])/block_size)
 C = np.full((Z, t_edges[-1] - t_edges[0]), np.nan)
 var_est = []
-for i in range(1, Z):
+for i in range(0, Z):
     hists = []
     ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns)])
     print(np.ceil(np.max(ages)))
@@ -190,9 +190,9 @@ for i in range(1, Z):
         for b in range(num_bins):
             block_hists[k, b] = np.sum(b_w[b_idx == b])
 
-    est = np.sum(block_weights_sum*block_hists, axis = 0)/np.sum(block_weights_sum)
+    est = block_weights_sum@block_hists/np.sum(block_weights_sum)
     meff = np.sum(block_weights_sum)**2 / np.sum(block_weights_sum**2)
-    var_est.append(meff * np.sum(block_weights_sum * (block_hists - full_hist)**2, axis = 0) / ((meff - 1) *np.sum(block_weights_sum)))
+    var_est.append(meff * block_weights_sum @ (block_hists - full_hist)**2 / ((meff - 1) *np.sum(block_weights_sum)))
     C[i, bins[:-1]-t_edges[0]] = est
     print(i/Z)
 
