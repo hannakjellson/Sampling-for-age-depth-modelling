@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import arviz as az
 import os
 import gc
 from pathlib import Path
