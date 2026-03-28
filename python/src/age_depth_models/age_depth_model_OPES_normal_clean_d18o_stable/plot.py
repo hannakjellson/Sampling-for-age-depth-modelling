@@ -127,7 +127,7 @@ for i, c in enumerate(data["cs"]):
 ax.plot(data["c14d"], np.squeeze(data["c14"]), "ko", markersize=4, label = r"$^{230}Th$")
 ax.plot(data["cs"], true_ages, color = data_color, linewidth=3, alpha = 0.2, label = data_name + "(d)")
 im = ax.imshow(
-    C,
+    C.T,
     extent=[z[0], z[-1], t_edges[0], t_edges[-1]],
     origin='lower',
     aspect='auto',
@@ -142,7 +142,7 @@ cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
 plt.savefig(f"{output_dir}/resampled_no_mean.jpg")
-np.save(f"{output_dir}/C_anders.npz")
+np.save(f"{output_dir}/C_anders.npz", C)
 
 
 ns = len(samples[0, :, 0])
@@ -207,7 +207,7 @@ for i, c in enumerate(data["cs"]):
 ax.plot(data["c14d"], np.squeeze(data["c14"]), "ko", markersize=4, label = r"$^{230}Th$")
 ax.plot(data["cs"], true_ages, color = data_color, linewidth=3, alpha = 0.2, label = data_name + "(d)")
 im = ax.imshow(
-    C,
+    C.T,
     extent=[z[0], z[-1], t_edges[0], t_edges[-1]],
     origin='lower',
     aspect='auto',
@@ -222,5 +222,5 @@ cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
 plt.savefig(f"{output_dir}/resampled_no_mean_other.jpg")
-np.save(f"{output_dir}/C_opes.npz")
+np.save(f"{output_dir}/C_opes.npz", C)
 
