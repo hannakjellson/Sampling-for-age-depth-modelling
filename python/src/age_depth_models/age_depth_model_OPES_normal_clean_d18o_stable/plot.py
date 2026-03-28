@@ -132,6 +132,15 @@ np.save(f"{output_dir}/sigma_est_jackknife", sigma_est_jackknife)
 np.save(f"{output_dir}/C_opes_2", C_opes)
 np.save(f"{output_dir}/sigma_est_opes_2", sigma_est_opes)
 
+# C_jackknife = np.load(f"{output_dir}/C_jackknife.npy")
+# sigma_est_jackknife = np.load(f"{output_dir}/sigma_est_jackknife.npy")
+# C_opes = np.load(f"{output_dir}/C_opes_2.npy")
+# sigma_est_opes = np.load(f"{output_dir}/sigma_est_opes_2.npy")
+
+print(f"Global Max: {np.nanmax(C_opes)}")
+print(f"Global Min (positive): {np.min(C_opes[C_opes > 0])}")
+print(f"Number of Non-NaNs: {np.count_nonzero(~np.isnan(C_opes))}")
+
 print("Plotting")
 
 ### Plotting Jackknife
@@ -152,7 +161,8 @@ im = ax.imshow(
     aspect='auto',
     # vmin=0,
     # vmax=0.01 * N,
-    norm=colors.LogNorm()
+    interpolation='nearest',
+    norm=colors.LogNorm(1e-4, 1)
 )
 
 plt.legend(loc = "upper right")
@@ -161,6 +171,7 @@ cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
 plt.savefig(f"{output_dir}/age_depth_fig_jackknife.jpg")
+# plt.show()
 
 ### Plotting OPES
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -180,7 +191,8 @@ im = ax.imshow(
     aspect='auto',
     # vmin=0,
     # vmax=0.01 * N,
-    norm=colors.LogNorm()
+    interpolation='nearest',
+    norm=colors.LogNorm(1e-4, 1)
 )
 
 plt.legend(loc = "upper right")
@@ -189,3 +201,4 @@ cbar.set_label("Marginal Density")
 plt.xlabel("Distance from top of stalagmite [mm]")
 plt.ylabel("Year CE")
 plt.savefig(f"{output_dir}/age_depth_fig_opes_2.jpg")
+# plt.show()
