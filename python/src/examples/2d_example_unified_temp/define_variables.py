@@ -5,9 +5,9 @@ import os
 
 def get_hmc_config():
     dt = 0.1
-    num_samples = 10000
-    num_HMC = 100
-    num_dt = 1
+    num_samples = 100000
+    num_HMC = 1
+    num_dt = 700
     num_chains = 4
     sigma = 2.2
     num_temps = 7

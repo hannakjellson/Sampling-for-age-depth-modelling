@@ -101,9 +101,9 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 5,
-        "ns": 10000,
-        "sd": 10000,
+        "nch": 20,
+        "ns": 1000000,
+        "sd": 10,
 
         "dt": 0.001,
 
@@ -114,7 +114,7 @@ def get_hmc_config():
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
     ebt = 20
-    nt = 40
+    nt = 20
 
     opes_config = {
         "hmcc": hmc_config,  # keep the nested config as a dict
@@ -169,7 +169,7 @@ def get_data():
 
     if name.lower() == "dayu19a":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219A/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
@@ -177,14 +177,14 @@ def get_data():
         
     elif name.lower() == "dayu19b":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219B/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
     elif name.lower() == "dayu19c":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219C/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
@@ -197,7 +197,7 @@ def get_data():
     #     ).str.strip()
 
     depths = df["depth"].to_numpy()
-    c14_ages = df["cal_c14_age"].to_numpy()
+    c14_ages = df["age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
     true_ages = df["true_age"].to_numpy()
     d18o = df["d18O"].to_numpy()

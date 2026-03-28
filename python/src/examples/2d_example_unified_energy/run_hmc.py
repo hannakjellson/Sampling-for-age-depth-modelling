@@ -14,6 +14,9 @@ def define_c_types(lib):
         ctypes.c_int,  # num_chains
         ctypes.c_int,  # num_lambda
         ctypes.c_double,  # sigma
+        ctypes.c_double,  # dE
+        ctypes.c_double,  # max_dF
+        ctypes.POINTER(ctypes.c_double),  # energy_exp
         ctypes.POINTER(ctypes.c_double),  # samples_out
         ctypes.POINTER(ctypes.c_double),  # energy_out
         ctypes.POINTER(ctypes.c_double),  # delF_out
@@ -39,6 +42,11 @@ def main():
     delF_out = (ctypes.c_double * total_times_num_lambda)()
     bias_out = (ctypes.c_double * total)()
 
+    start_energies = np.load(f"../../../../output/2d_example_unified_temp/start_energy_values.npy")
+    start_energies = start_energies[:, 90000:].ravel()
+    energy_expectation = -np.log(np.mean(np.exp(-(start_energies[:, None] - np.linspace(0, config["dE"], config["num_lambda"])[None, :])**2/(2*config["sigma"]**2)), axis = 0))
+    print(energy_expectation)
+
     lib.hmc(
         ctypes.c_double(config["dt"]),
         ctypes.c_int(config["num_samples"]),
@@ -47,6 +55,9 @@ def main():
         ctypes.c_int(config["num_chains"]),
         ctypes.c_int(config["num_lambda"]),
         ctypes.c_double(config["sigma"]),
+        ctypes.c_double(config["dE"]),
+        ctypes.c_double(config["max_dF"]),
+        energy_expectation.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         samples_out,
         energy_out,
         delF_out,

@@ -57,7 +57,7 @@ void grad_bias(double x[2], int num_temps, double temps[num_temps], double delta
 
     for (int i = 0; i < num_temps; i++)
     {
-        sum_for_dV += -((1 / temps[i]) - (1 / temps[0])) * exp(-((1 / temps[i]) - (1 / temps[0])) * energy_function(x) + delta_F[i]);
+        sum_for_dV += ((1 / temps[i]) - (1 / temps[0])) * exp(-((1 / temps[i]) - (1 / temps[0])) * energy_function(x) + delta_F[i]);
         sum_for_V += exp(-((1 / temps[i]) - (1 / temps[0])) * energy_function(x) + delta_F[i]);
     }
 
@@ -65,18 +65,15 @@ void grad_bias(double x[2], int num_temps, double temps[num_temps], double delta
     dV[1] = sum_for_dV * grad_energy_val[1] / sum_for_V;
 }
 
-void update_delta_F(double x[2], int temp_index, int num_temps, double temps[num_temps], double delta_F_nominator_sum[num_temps], double delta_F_denominator_sum[num_temps], double delta_F[num_temps], double potential, int sample)
+void update_delta_F(double x[2], int temp_index, int num_temps, double temps[num_temps], double delta_F_nominator_sum[num_temps], double delta_F_denominator_sum[num_temps], double delta_F[num_temps], double potential)
 {
     delta_F_nominator_sum[temp_index] += exp(-((1 / temps[temp_index]) - (1 / temps[0])) * energy_function(x) + potential);
     delta_F_denominator_sum[temp_index] += exp(potential);
 
-    if (sample > 1000)
+    delta_F[temp_index] = -log(delta_F_nominator_sum[temp_index] / delta_F_denominator_sum[temp_index]);
+    if (delta_F[temp_index] >= 15)
     {
-        delta_F[temp_index] = -log(delta_F_nominator_sum[temp_index] / delta_F_denominator_sum[temp_index]);
-        if (delta_F[temp_index] >= 15)
-        {
-            delta_F[temp_index] = 15;
-        }
+        delta_F[temp_index] = 15;
     }
 }
 
@@ -88,7 +85,7 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
     for (int i = 0; i < num_temps; i++)
     {
         if (num_temps > 1)
-            temps[i] = pow(num_temps, (double)i / (num_temps - 1));
+            temps[i] = 1 + (double)i;
         else
             temps[i] = 1;
     }
@@ -111,28 +108,29 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
         x_vec[0] = x;
         x_vec[1] = y;
 
-        // double min_energy = energy_function(x_vec);
-        // for (int i = 0; i < 10; i++)
-        // {
-        //     double x_new = gsl_ran_gaussian(r, 2);
-        //     double x_vec_new[2];
-        //     x_vec_new[0] = x_new;
-        //     x_vec_new[1] = x_vec[1];
-        //     double energy_new = energy_function(x_vec_new);
-        //     if (energy_new < min_energy)
-        //     {
-        //         min_energy = energy_new;
-        //         x_vec[0] = x_vec_new[0];
-        //     }
-        // }
+        double min_energy = energy_function(x_vec);
+        for (int i = 0; i < 10; i++)
+        {
+            double x_new = gsl_ran_gaussian(r, 2);
+            double x_vec_new[2];
+            x_vec_new[0] = x_new;
+            x_vec_new[1] = x_vec[1];
+            double energy_new = energy_function(x_vec_new);
+            if (energy_new < min_energy)
+            {
+                min_energy = energy_new;
+                x_vec[0] = x_vec_new[0];
+            }
+        }
 
         double delta_F[num_temps], delta_F_nominator_sum[num_temps], delta_F_denominator_sum[num_temps];
         double energy = energy_function(x_vec);
         for (int i = 0; i < num_temps; i++)
         {
-            delta_F_nominator_sum[i] = 0;                            // exp(-((1 / temps[i]) - (1 / temps[0])) * energy);
-            delta_F_denominator_sum[i] = 0;                          // 1;
-            delta_F[i] = (1 / temps[i] - 1 / temps[0]) * energy_exp; //-log(delta_F_nominator_sum[i] / delta_F_denominator_sum[i]);
+            // delta_F_nominator_sum[i] = 0;                            // exp(-((1 / temps[i]) - (1 / temps[0])) * energy);
+            // delta_F_denominator_sum[i] = 0;                          // 1;
+            // delta_F[i] = (1 / temps[i] - 1 / temps[0]) * energy_exp; //-log(delta_F_nominator_sum[i] / delta_F_denominator_sum[i]);
+            update_delta_F(x_vec, i, num_temps, temps, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, 0);
             if (delta_F[i] >= 15)
             {
                 delta_F[i] = 15;
@@ -224,7 +222,7 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
 
             for (int i = 0; i < num_temps; i++)
             {
-                update_delta_F(x_vec, i, num_temps, temps, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_out[k * num_samples + s], s);
+                update_delta_F(x_vec, i, num_temps, temps, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_out[k * num_samples + s]);
             }
         }
         mean_accept /= (num_samples * num_HMC);

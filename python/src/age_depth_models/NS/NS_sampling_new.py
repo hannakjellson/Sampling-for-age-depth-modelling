@@ -102,7 +102,7 @@ def run_discovery(key, config, data):
         difficult_model=config["dm"], 
         gradient_guided=config["gg"], # Try False first to ensure gradients aren't the issue
         parameter_estimation=config["pm"],
-        # init_efficiency_threshold=config["iet"]
+        init_efficiency_threshold=config["iet"]
         # init_efficiency_threshold=0.05,
         # shell_fraction=0.7     # Allow wider jumps
     )

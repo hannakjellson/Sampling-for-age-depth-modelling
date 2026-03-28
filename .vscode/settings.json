@@ -8,5 +8,6 @@
     "gsl_permutation.h": "c",
     "chrono": "c",
     "gsl_randist.h": "c"
-  }
+  },
+  "cmake.sourceDirectory": "C:/Users/hanna/Desktop/PhD/Bacon/bacon_venv"
 }

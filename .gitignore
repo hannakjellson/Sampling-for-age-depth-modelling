@@ -5,3 +5,6 @@ __pycache__/
 *.log 
 *.bin
 *.jpg
+*.gif
+*.nc
+*.json

@@ -12,7 +12,7 @@ import re
 from scipy.spatial.distance import cdist
 
 def main():
-    base_dir = Path(__file__).parent 
+    base_dir = Path(__file__).parent
 
     np.random.seed(hmc_config["sd"])
     sp = np.random.multivariate_normal(data["pm"]* np.ones(data["N"]), data["ps"]**2 * np.eye(data["N"]), (hmc_config["nch"]))
@@ -20,7 +20,8 @@ def main():
     hmc_config["sp"] = np.ascontiguousarray(sp)
 
     hmc_hash = hash_configs(hmc_config, data)
-    output_dir = base_dir / f"output/{hmc_hash}"
+    print(hmc_hash)
+    output_dir = base_dir / f"output/{data["dn"]}/{hmc_hash}"
     os.makedirs(output_dir, exist_ok=True)
 
     c_hmc_config = dict_to_struct(

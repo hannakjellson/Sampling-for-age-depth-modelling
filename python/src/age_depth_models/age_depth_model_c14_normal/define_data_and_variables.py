@@ -6,6 +6,16 @@ import hashlib
 import json
 
 
+name_map = {
+    "dayu19a" : "inputdata_260219A",
+    "dayu19b" : "inputdata_260219B",
+    "dayu19c" : "inputdata_260219C",
+    "shenqui" : "inputdata_260325_shenqui",
+    "biw" : "inputdata_260325_biw",
+    "munagamanu" : "inputdata_260325_munagamanu",
+    "wah" : "inputdata_260325_wah",
+}
+
 class HMCConfig(ctypes.Structure):
     _fields_ = [
         ("ndt", ctypes.c_int64), # number of time steps
@@ -64,8 +74,8 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 10000,
-        "sd": 42,
+        "ns": 50000,
+        "sd": 41,
 
         "dt": 0.005,
 
@@ -74,67 +84,87 @@ def get_hmc_config():
     return hmc_config
 
 def get_data():
-    name = "dayu06"
+    name = "biw"
     N = 50
-    H = 100
+    H = 1000
 
     base_path = "../../../../data/"
     d18o_timeseries = None
 
-    if name.lower() == "dayu06":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
-        )
+    df = pd.read_csv(
+        os.path.join(base_path, name_map[name], "data.txt"), sep="\t"
+    )
+    if "dayu" in name.lower():
         d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_250306A/ECHAM5_d18O_Dayu_Cave.xlsx")
+            os.path.join(base_path, name_map[name], "ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-
-    elif name.lower() == "dayu26":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
+    elif not name == "biw":
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, name_map[name], "ECHAM5.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_250826/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-
-    elif name.lower() == "dayu19a":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
+    else:
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, name_map[name], "Midpath.txt"), sep="\t"
         )
         
-    elif name.lower() == "dayu19b":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-    elif name.lower() == "dayu19c":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-
+    # elif name.lower() == "dayu19b":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_excel(
+    #         os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
+    #     )
+    # elif name.lower() == "dayu19c":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_excel(
+    #         os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
+    #     )
+    # elif name.lower() == "shenqui":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_shenqui/data.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_shenqui/ECHAM5.txt"), sep="\t"
+    #     )
+    # elif name.lower() == "biw":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_biw/data.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_biw/Midpath.txt"), sep="\t"
+    #     )
+    # elif name.lower() == "munagamanu":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_munagamanu/data.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_munagamanu/ECHAM5.txt"), sep="\t"
+    #     )
+    # elif name.lower() == "wah":
+    #     df = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_wah/data.txt"), sep="\t"
+    #     )
+    #     d18o_timeseries = pd.read_csv(
+    #         os.path.join(base_path, "inputdata_260325_wah/ECHAM5.txt"), sep="\t"
+    #     )
     # df.columns = df.columns.str.replace("%", "").str.strip()
 
     depths = df["depth"].to_numpy()
-    c14_ages = df["cal_c14_age"].to_numpy()
+    c14_ages = df["age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
     true_ages = df["true_age"].to_numpy()
-    d18o = df["d18O"].to_numpy()
-    d18o_sigma = df["sigma_d18O"].to_numpy()
+    d18o = df["d18O"].to_numpy() if not name.lower() == "biw" else df["inc"]
+    d18o_sigma = df["sigma_d18O"].to_numpy() if not name.lower() == "biw" else df["sigma_inc"]
 
     d18o_reference_times = (
         d18o_timeseries["Year"].to_numpy()
     )
+
     d18o_reference = (
         d18o_timeseries["Filtered d18O"].to_numpy()
-    )
+    ) if not name.lower() == "biw" else d18o_timeseries["inc"].to_numpy()
 
     c14_mask = ~np.isnan(c14_ages)
     d18o_mask = ~np.isnan(d18o)
@@ -180,6 +210,7 @@ def get_data():
 
         "dn": name, # .encode("utf-8")?
     }
+    print(data)
 
     return data
 
@@ -235,3 +266,4 @@ hmc_config = get_hmc_config()
 c_data = dict_to_struct(
     data, Data
 )
+

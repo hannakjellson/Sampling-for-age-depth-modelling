@@ -68,19 +68,23 @@ void grad_bias(double x[2], int num_lambda, double gaussian_centers[num_lambda],
     dV[1] = sum_for_dV * grad_energy_val[1] / sum_for_V;
 }
 
-void update_delta_F(double x[2], int lambda_index, int num_lambda, double sigma_2, double gaussian_centers[num_lambda], double delta_F_nominator_sum[num_lambda], double delta_F_denominator_sum[num_lambda], double delta_F[num_lambda], double potential)
+void update_delta_F(double x[2], int lambda_index, int num_lambda, double sigma_2, double gaussian_centers[num_lambda], double delta_F_nominator_sum[num_lambda], double delta_F_denominator_sum[num_lambda], double delta_F[num_lambda], double potential, double max_dF, int sample)
 {
+    // printf("%f\n", energy_function(x));
     delta_F_nominator_sum[lambda_index] += exp((-pow(energy_function(x) - gaussian_centers[lambda_index], 2) / (2 * sigma_2)) + potential);
     delta_F_denominator_sum[lambda_index] += exp(potential);
 
-    delta_F[lambda_index] = -log(delta_F_nominator_sum[lambda_index] / delta_F_denominator_sum[lambda_index]);
-    if (delta_F[lambda_index] >= 15)
+    if (sample > -1)
     {
-        delta_F[lambda_index] = 15;
+        delta_F[lambda_index] = -log(delta_F_nominator_sum[lambda_index] / delta_F_denominator_sum[lambda_index]);
+        if (delta_F[lambda_index] >= max_dF)
+        {
+            delta_F[lambda_index] = max_dF;
+        }
     }
 }
 
-void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int num_lambda, double sigma,
+void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int num_lambda, double sigma, double dE, double max_dF, double *energy_exp,
          double *samples_out, double *energy_out, double *delta_F_out, double *bias_out)
 {
 
@@ -88,7 +92,7 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
     double gaussian_centers[num_lambda];
     for (int i = 0; i < num_lambda; i++)
     {
-        gaussian_centers[i] = 30 * ((double)i / (num_lambda - 1));
+        gaussian_centers[i] = dE * ((double)i / (num_lambda - 1));
     }
 
 #pragma omp parallel for
@@ -100,7 +104,7 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
         gsl_rng_env_setup();
         T = gsl_rng_default;
         r = gsl_rng_alloc(T);
-        unsigned long seed = k;
+        unsigned long seed = k + 50;
         gsl_rng_set(r, seed);
 
         double x = gsl_ran_gaussian(r, 2);
@@ -127,12 +131,12 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
         double delta_F[num_lambda], delta_F_nominator_sum[num_lambda], delta_F_denominator_sum[num_lambda];
         for (int i = 0; i < num_lambda; i++)
         {
-            delta_F_nominator_sum[i] = exp(-pow(energy_function(x_vec) - gaussian_centers[i], 2) / (2 * sigma_2));
-            delta_F_denominator_sum[i] = 1;
-            delta_F[i] = -log(delta_F_nominator_sum[i] / delta_F_denominator_sum[i]);
-            if (delta_F[i] >= 15)
+            delta_F_nominator_sum[i] = 0;
+            delta_F_denominator_sum[i] = 0;
+            delta_F[i] = energy_exp[i];
+            if (delta_F[i] >= max_dF)
             {
-                delta_F[i] = 15;
+                delta_F[i] = max_dF;
             }
         }
 
@@ -221,7 +225,7 @@ void hmc(double dt, int num_samples, int num_HMC, int num_dt, int num_SP, int nu
 
             for (int i = 0; i < num_lambda; i++)
             {
-                update_delta_F(x_vec, i, num_lambda, sigma_2, gaussian_centers, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_out[k * num_samples + s]);
+                update_delta_F(x_vec, i, num_lambda, sigma_2, gaussian_centers, delta_F_nominator_sum, delta_F_denominator_sum, delta_F, bias_out[k * num_samples + s], max_dF, s);
             }
         }
         mean_accept /= (num_samples * num_HMC);

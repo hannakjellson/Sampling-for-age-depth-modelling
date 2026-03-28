@@ -95,8 +95,8 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "ns": 1000,
-        "sd": 42,
+        "ns": 1000000,
+        "sd": 10,
 
         "dt": 0.001,
 
@@ -280,7 +280,6 @@ def hash_configs(*configs, algo="sha256", length=10):
 adam_config = get_adam_config()
 pt_config = get_pt_config()
 data = get_data()
-print(data)
 
 adam_hash = hash_configs(adam_config, data)
 

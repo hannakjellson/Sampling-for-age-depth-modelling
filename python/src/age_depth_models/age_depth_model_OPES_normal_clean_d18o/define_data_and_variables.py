@@ -89,8 +89,8 @@ def dict_to_struct(d: dict, struct_type):
 def get_adam_config():
     adam_config = {
         "nsp": 100,
-        "mi": 100,
-        "sd": 42,
+        "mi": 10000,
+        "sd": 1000,
 
         "dt": 0.00001,
         "gl": 0.00001,
@@ -102,8 +102,8 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 125000,
-        "sd": 42,
+        "ns": 100,
+        "sd": 1000,
 
         "dt": 0.0008,
 

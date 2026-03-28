@@ -14,16 +14,16 @@ import sys
 # from blackjax.mcmc.integrators import yoshida
 
 NUM_TEMPS = 7
-MAX_TEMP = 100
+MAX_TEMP = 7
 ZERO_TEMP = 1
 BETA_0 = 1 / ZERO_TEMP
 BETA_MIN = 1 / MAX_TEMP
 # BETAS = jnp.linspace(BETA_MIN, BETA_0, NUM_TEMPS)[::-1]
-TEMPS = ((MAX_TEMP)**(jnp.linspace(0, NUM_TEMPS - 1, NUM_TEMPS) / (NUM_TEMPS - 1))) # 1 / BETAS
+TEMPS = jnp.linspace(1, NUM_TEMPS, NUM_TEMPS) # 1 / BETAS
 BETAS = 1 / TEMPS
-INTEGRATION_STEPS = 10
-STEPSIZE = 0.1
-HMC_STEPS = 10
+STEPSIZE = 0.05
+INTEGRATION_STEPS = 700
+HMC_STEPS = 1
 DE = 15
 
 
@@ -94,7 +94,7 @@ def inference_loop(
     adaptation_kwargs.pop("algorithm", "nuts")
     algorithm = blackjax.hmc
 
-    jax.debug.print("alg_name = {}", algorithm)
+    # jax.debug.print("alg_name = {}", algorithm)
 
     # Set up initial state, init_position is passed from outside
     # Default should be uniform
@@ -195,9 +195,9 @@ def inference_loop(
             "diverging": info.is_divergent,
             "energy": info.energy,
             # "tree_depth": info.num_trajectory_expansions,
-            # "n_steps": info.num_integration_steps,
+            "n_steps": info.num_integration_steps,
             "acceptance_rate": info.acceptance_rate,
-            "lp": state.logdensity,
+            "lp": logdensity,
             "bias_value": potential,
             "delta_F": bias_state.delta_F,
         }
