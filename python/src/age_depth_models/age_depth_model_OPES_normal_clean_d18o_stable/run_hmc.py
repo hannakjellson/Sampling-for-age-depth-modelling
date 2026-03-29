@@ -14,10 +14,10 @@ from scipy.spatial.distance import cdist
 def main():
     base_dir = Path(__file__).parent 
 
-    adam_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
-    d18o_energies = np.load(adam_dir / "adam_d18o_energies.npy")
-    print(np.min(d18o_energies))
-    # return
+    # adam_dir = base_dir / f"output/{data['dn']}/{adam_hash}"
+    # d18o_energies = np.load(adam_dir / "adam_d18o_energies.npy")
+    # print(np.min(d18o_energies))
+    # # return
 
     sp_dir = base_dir / f"output/{data['dn']}/sd_{opes_config['hmcc']['sd']}"
 

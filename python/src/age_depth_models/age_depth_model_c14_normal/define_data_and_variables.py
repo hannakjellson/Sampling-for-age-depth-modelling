@@ -7,9 +7,9 @@ import json
 
 
 name_map = {
-    "dayu19a" : "inputdata_260219A",
-    "dayu19b" : "inputdata_260219B",
-    "dayu19c" : "inputdata_260219C",
+    "dayu19A" : "inputdata_260219A",
+    "dayu19B" : "inputdata_260219B",
+    "dayu19C" : "inputdata_260219C",
     "shenqui" : "inputdata_260325_shenqui",
     "biw" : "inputdata_260325_biw",
     "munagamanu" : "inputdata_260325_munagamanu",
@@ -74,8 +74,8 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 50000,
-        "sd": 41,
+        "ns": 10000,
+        "sd": 42,
 
         "dt": 0.005,
 
@@ -84,9 +84,9 @@ def get_hmc_config():
     return hmc_config
 
 def get_data():
-    name = "biw"
+    name = "dayu19A"
     N = 50
-    H = 1000
+    H = 100
 
     base_path = "../../../../data/"
     d18o_timeseries = None

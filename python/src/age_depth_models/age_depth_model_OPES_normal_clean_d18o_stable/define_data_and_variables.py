@@ -5,6 +5,16 @@ import ctypes
 import hashlib
 import json
 
+name_map = {
+    "dayu19A" : "inputdata_260219A",
+    "dayu19B" : "inputdata_260219B",
+    "dayu19C" : "inputdata_260219C",
+    "shenqui" : "inputdata_260325_shenqui",
+    "biw" : "inputdata_260325_biw",
+    "munagamanu" : "inputdata_260325_munagamanu",
+    "wah" : "inputdata_260325_wah",
+}
+
 class ADAMConfig(ctypes.Structure):
     _fields_ = [
         ("nsp", ctypes.c_int64), # number of starting points
@@ -130,71 +140,28 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "dayu19A"
+    name = "shenqui"
     N = 50
-    H = 100
+    H = 115
 
     base_path = "../../../../data/"
     d18o_timeseries = None
 
-    # if name.lower() == "dayu06":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_250306A/d18O_timeseries.txt"), sep="\t"
-    #     )
-    # elif name.lower() == "dayu12a":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212A/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212A/d18O_timeseries.txt"), sep="\t"
-    #     )
-        
-    # elif name.lower() == "dayu12b":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212B/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212B/d18O_timeseries.txt"), sep="\t"
-    #     )
-    # elif name.lower() == "dayu12c":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212C/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_260212C/d18O_timeseries.txt"), sep="\t"
-    #     )
-
-    if name.lower() == "dayu19a":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219A/data.txt"), sep="\t"
-        )
+    df = pd.read_csv(
+        os.path.join(base_path, name_map[name], "data.txt"), sep="\t"
+    )
+    if "dayu" in name.lower():
         d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
+            os.path.join(base_path, name_map[name], "ECHAM5_d18O_Dayu_Cave.xlsx")
         )
-        
-    elif name.lower() == "dayu19b":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219B/data.txt"), sep="\t"
+    elif not name == "biw":
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, name_map[name], "ECHAM5.txt"), sep="\t"
         )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
+    else:
+        d18o_timeseries = pd.read_csv(
+            os.path.join(base_path, name_map[name], "Midpath.txt"), sep="\t"
         )
-    elif name.lower() == "dayu19c":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219C/data.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-
-    # df.columns = df.columns.str.replace("%", "").str.strip()
-    # if d18o_timeseries is not None:
-    #     d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
-    #         "% ", ""
-    #     ).str.strip()
 
     depths = df["depth"].to_numpy()
     c14_ages = df["age"].to_numpy()
