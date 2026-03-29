@@ -145,7 +145,7 @@ def get_data():
 
     if name.lower() == "dayu19a":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219A/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219A/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
@@ -153,14 +153,14 @@ def get_data():
         
     elif name.lower() == "dayu19b":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219B/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219B/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
         )
     elif name.lower() == "dayu19c":
         df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219C/Dayu cave.txt"), sep="\t"
+            os.path.join(base_path, "inputdata_260219C/data.txt"), sep="\t"
         )
         d18o_timeseries = pd.read_excel(
             os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
@@ -173,7 +173,7 @@ def get_data():
     #     ).str.strip()
 
     depths = df["depth"].to_numpy()
-    c14_ages = df["cal_c14_age"].to_numpy()
+    c14_ages = df["age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
     true_ages = df["true_age"].to_numpy()
     d18o = df["d18O"].to_numpy()
