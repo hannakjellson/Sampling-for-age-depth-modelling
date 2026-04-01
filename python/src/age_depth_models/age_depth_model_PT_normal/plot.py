@@ -12,7 +12,7 @@ from matplotlib import colors
 base_dir = Path.cwd()
 
 base_path = base_dir / ".." / ".." / ".." / ".." / "data"
-data_name = rf"$A_{{{data["dn"][:3]}}}$"
+data_name = rf"$A_{{{data['dn'][:3]}}}$"
 ylim_max = 0.4
 true_sample = np.load(base_path / data["dn"] / version / "true_sample.npy")
 int_version = int(version)
