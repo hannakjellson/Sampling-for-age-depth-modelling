@@ -5,7 +5,7 @@ import ctypes
 import hashlib
 import json
 
-version = "1"
+version = "2"
 
 class ADAMConfig(ctypes.Structure):
     _fields_ = [

@@ -212,7 +212,7 @@ def main():
             color="red",
             alpha=1,
             linewidth=1,
-            label = rf"$A_{{{data["dn"][:3]}}}(d)$"
+            label = rf"$A_{{{data["dn"][:3]}}}(d)$" if "d18o" in data["dn"] else rf"$A_{{{data["dn"][:3] + data["dn"][4]}}}(d)$"
         )
 
         for j, c in enumerate(data["cs"]):

@@ -63,8 +63,8 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 5,
-        "ns": 10000,
-        "sd": 33,
+        "ns": 50000,
+        "sd": 101,
 
         "dt": 0.005,
 
