@@ -5,18 +5,6 @@ import ctypes
 import hashlib
 import json
 
-version = "1"
-
-class ADAMConfig(ctypes.Structure):
-    _fields_ = [
-        ("nsp", ctypes.c_int64), # number of starting points
-        ("mi", ctypes.c_int64), # maximum iterations
-        ("sd", ctypes.c_int64), # seed
-
-        ("dt", ctypes.c_double), # time step
-        ("gl", ctypes.c_double), # gradient limit
-    ]
-
 class HMCConfig(ctypes.Structure):
     _fields_ = [
         ("ndt", ctypes.c_int64), # number of time steps
@@ -27,23 +15,6 @@ class HMCConfig(ctypes.Structure):
         ("dt", ctypes.c_double), # time step
 
         ("sp", ctypes.POINTER(ctypes.c_double)), # starting points
-    ]
-
-class OPESConfig(ctypes.Structure):
-    _fields_ = [
-        ("hmcc", ctypes.POINTER(HMCConfig)), # HMCConfig
-
-        ("nhmc", ctypes.c_int64), # number of hmc steps before updating bias
-        ("nt", ctypes.c_int64), # number of temperatures
-
-        ("ebt", ctypes.c_double), # highest temperature
-        ("df", ctypes.POINTER(ctypes.c_double)), # expected energy
-        ("dfn", ctypes.POINTER(ctypes.c_double)), # expected energy
-        ("dfd", ctypes.c_double), # expected energy
-
-        ("bs", ctypes.POINTER(ctypes.c_double)), # betas (1/temperatures)
-
-        ("sb", ctypes.c_int64), # shared bias
     ]
 
 class Data(ctypes.Structure):
@@ -88,48 +59,18 @@ def dict_to_struct(d: dict, struct_type):
             setattr(obj, field, value)
     return obj
 
-def get_adam_config():
-    adam_config = {
-        "nsp": 100,
-        "mi": 100000,
-        "sd": 1000,
-
-        "dt": 0.00001,
-        "gl": 0.00001,
-    }
-
-    return adam_config
-
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 20,
+        "nch": 5,
         "ns": 10000,
-        "sd": 10,
+        "sd": 33,
 
-        "dt": 0.001,
+        "dt": 0.005,
 
         "sp": None,
     }
     return hmc_config
-
-def get_opes_config():
-    hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 20
-    nt = 20
-
-    opes_config = {
-        "hmcc": hmc_config,  # keep the nested config as a dict
-        "nhmc": 1,
-        "nt": nt,
-        "ebt": ebt,
-        "ee": None,
-        "dfn": None,
-        "dfd": 1000.0,
-        "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
-        "sb": 1,
-    }
-    return opes_config
 
 def get_data():
     name = "dayu_d18o"
@@ -140,7 +81,7 @@ def get_data():
     d18o_timeseries = None
 
     df = pd.read_csv(
-        os.path.join(base_path, name, version, "data.txt"), sep="\t"
+        os.path.join(base_path, name, "data.txt"), sep="\t"
     )
     d18o_timeseries = pd.read_csv(
         os.path.join(base_path, name, "ref.txt"), sep="\t"
@@ -156,6 +97,7 @@ def get_data():
     d18o_reference_times = (
         d18o_timeseries["Year"].to_numpy()
     )
+
     d18o_reference = (
         d18o_timeseries["ref"].to_numpy()
     )
@@ -204,6 +146,7 @@ def get_data():
 
         "dn": name, # .encode("utf-8")?
     }
+    print(data)
 
     return data
 
@@ -252,35 +195,20 @@ def hash_configs(*configs, algo="sha256", length=10):
 
     return h.hexdigest()[:length]
 
-adam_config = get_adam_config()
-opes_config = get_opes_config()
 data = get_data()
-
-np.random.seed(opes_config['hmcc']['sd'])
-sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
-
-opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-opes_config["df"] = 140 * (opes_config["bs"] - 1)
-opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
-
-opes_hash = hash_configs(opes_config, data)
-adam_hash = hash_configs(adam_config, data)
-
-c_adam_config = dict_to_struct(
-    adam_config, ADAMConfig
-)
 
 c_data = dict_to_struct(
     data, Data
 )
 
+hmc_config = get_hmc_config()
+
+np.random.seed(hmc_config["sd"])
+sp = np.random.multivariate_normal(data["pm"]* np.ones(data["N"]), data["ps"]**2 * np.eye(data["N"]), (hmc_config["nch"]))
+sp = np.exp(sp)
+hmc_config["sp"] = np.ascontiguousarray(sp)
+
 c_hmc_config = dict_to_struct(
-    opes_config["hmcc"], HMCConfig
+    hmc_config, HMCConfig
 )
 
-c_opes_config = opes_config.copy()
-c_opes_config["hmcc"] = ctypes.pointer(c_hmc_config)
-
-c_opes_config = dict_to_struct(
-    c_opes_config, OPESConfig
-)
