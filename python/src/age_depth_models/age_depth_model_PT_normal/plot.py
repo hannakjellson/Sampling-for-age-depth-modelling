@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import gc
 from pathlib import Path
-from define_data_and_variables import adam_config, pt_config, data, adam_hash, hash_configs
+from define_data_and_variables import pt_config, data, hash_configs, version
 import json
 from matplotlib.collections import LineCollection
 from matplotlib import colors
@@ -12,28 +12,14 @@ from matplotlib import colors
 base_dir = Path.cwd()
 
 base_path = base_dir / ".." / ".." / ".." / ".." / "data"
-if data["dn"].lower() == "dayu19a":
-    true_sample = np.load(base_path / "inputdata_260219A" / "true_sample.npy")
-    bin_range = (1660, 1720)
-    data_color = "red"
-    data_name = r"$A_1$"
-    ylim_max = 0.4
-elif data["dn"].lower() == "dayu19b":
-    true_sample = np.load(base_path / "inputdata_260219B" / "true_sample.npy")
-    bin_range = (1660, 1720)
-    data_color = "orange"
-    data_name = r"$A_2$"
-    ylim_max = 0.15
-if data["dn"].lower() == "dayu19c":
-    true_sample = np.load(base_path / "inputdata_260219C" / "true_sample.npy")
-    bin_range = (1660, 1720)
-    data_color = "yellow"
-    data_name = r"$A_3$"
-    ylim_max = 0.25
+data_name = rf"$A_{{{data["dn"][:3]}}}$"
+ylim_max = 0.4
+true_sample = np.load(base_path / data["dn"] / version / "true_sample.npy")
+int_version = int(version)
 true_ages = np.hstack((data["th"], data["th"] - np.cumsum(true_sample) * data["dc"]))
 
 base_dir = Path.cwd()
-sp_dir = base_dir / f"output/{data['dn']}/sd_{pt_config['hmcc']['sd']}"
+sp_dir = base_dir / f"output/{data['dn']}/{version}"
 np.random.seed(pt_config['hmcc']['sd'])
 sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (pt_config["nt"], data["N"]))
 pt_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
@@ -46,7 +32,7 @@ hmc_config = pt_config["hmcc"]
 cutout = 10000
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 
-index = 25
+index = 12
 interesting_depth = index * data["dc"]
 dt = 1
 K = 100
@@ -134,7 +120,7 @@ for i, c in enumerate(data["cs"]):
         ax.axvline(x=c, color='k', linestyle='--', linewidth = 0.1)
 
 ax.plot(data["c14d"], np.squeeze(data["c14"]), "ko", markersize=4, label = r"$^{230}Th$")
-ax.plot(data["cs"], true_ages, color = data_color, linewidth=3, alpha = 0.2, label = data_name + "(d)")
+ax.plot(data["cs"], true_ages, color = "red", linewidth=3, alpha = 0.2, label = data_name + "(d)")
 im = ax.imshow(
     C_jackknife.T,
     extent=[z[0], z[-1], t_edges[0], t_edges[-1]],
@@ -163,10 +149,10 @@ fig, ax = plt.subplots(figsize=(6, 4))
 ax.errorbar(bin_centers, C_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], yerr=2*sigma_est_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], fmt='none', color = "grey", capsize=3, label = r"2$\sigma$ errorbar")
 ax.bar(bin_centers,  C_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], width=np.diff(bin_edges), alpha=0.3, color='gray', align='center')
 ax.set_ylim(0, ylim_max)
-ax.set_xlim(bin_range[0], bin_range[1])
+ax.set_xlim(bin_edges[0], bin_edges[-1])
 ax.set_xlabel("Year CE")
 ax.set_ylabel("Marginal Density")
-ax.axvline(x=true_ages[index], color=data_color, linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} mm)")
+ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} mm)")
 plt.legend(loc = "upper right")
 plt.savefig(f"{output_dir}/samples_along_depth_{interp_depth}_jackknife.jpg")
 # plt.show()
