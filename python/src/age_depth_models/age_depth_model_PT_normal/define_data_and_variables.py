@@ -5,6 +5,8 @@ import ctypes
 import hashlib
 import json
 
+version = "0"
+
 class ADAMConfig(ctypes.Structure):
     _fields_ = [
         ("nsp", ctypes.c_int64), # number of starting points
@@ -95,7 +97,7 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "ns": 1000000,
+        "ns": 10000,
         "sd": 10,
 
         "dt": 0.001,
@@ -120,70 +122,32 @@ def get_pt_config():
     return pt_config
 
 def get_data():
-    name = "dayu19A"
+    name = "dayu_d18o"
     N = 50
     H = 100
 
     base_path = "../../../../data/"
     d18o_timeseries = None
 
-    # if name.lower() == "dayu06":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_250306A/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_excel(
-    #         os.path.join(base_path, "inputdata_250306A/ECHAM5_d18O_Dayu_Cave.xlsx")
-    #     )
-
-    # elif name.lower() == "dayu26":
-    #     df = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_250826/Dayu cave.txt"), sep="\t"
-    #     )
-    #     d18o_timeseries = pd.read_csv(
-    #         os.path.join(base_path, "inputdata_250826/d18O_timeseries.txt"), sep="\t"
-    #     )
-
-    if name.lower() == "dayu19a":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219A/data.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219A/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-        
-    elif name.lower() == "dayu19b":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219B/data.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219B/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-    elif name.lower() == "dayu19c":
-        df = pd.read_csv(
-            os.path.join(base_path, "inputdata_260219C/data.txt"), sep="\t"
-        )
-        d18o_timeseries = pd.read_excel(
-            os.path.join(base_path, "inputdata_260219C/ECHAM5_d18O_Dayu_Cave.xlsx")
-        )
-
-    # df.columns = df.columns.str.replace("%", "").str.strip()
-    # if d18o_timeseries is not None:
-    #     d18o_timeseries.columns = d18o_timeseries.columns.str.replace(
-    #         "%", ""
-    #     ).str.strip()
+    df = pd.read_csv(
+        os.path.join(base_path, name, version, "data.txt"), sep="\t"
+    )
+    d18o_timeseries = pd.read_csv(
+        os.path.join(base_path, name, "ref.txt"), sep="\t"
+    )
 
     depths = df["depth"].to_numpy()
     c14_ages = df["age"].to_numpy()
     c14_sigma = df["sigma_age"].to_numpy()
     true_ages = df["true_age"].to_numpy()
-    d18o = df["d18O"].to_numpy()
-    d18o_sigma = df["sigma_d18O"].to_numpy()
+    d18o = df["ref"].to_numpy()
+    d18o_sigma = df["sigma_ref"].to_numpy()
 
     d18o_reference_times = (
         d18o_timeseries["Year"].to_numpy()
     )
     d18o_reference = (
-        d18o_timeseries["Filtered d18O"].to_numpy()
+        d18o_timeseries["ref"].to_numpy()
     )
 
     c14_mask = ~np.isnan(c14_ages)
