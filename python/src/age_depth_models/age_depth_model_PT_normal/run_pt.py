@@ -41,7 +41,10 @@ def main():
         dump_pt_config = make_dumpable(pt_config)
         json.dump(dump_pt_config, f, indent=2)
 
-
+    # Save data
+    with open(os.path.join(output_dir, "data.json"), "w") as f:
+        dump_data = make_dumpable(data)
+        json.dump(dump_data, f, indent=2)
     #### Running Adams
 
     # Load library depending on OS

@@ -104,7 +104,7 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 20,
-        "ns": 10000,
+        "ns": 100000,
         "sd": 10,
 
         "dt": 0.001,

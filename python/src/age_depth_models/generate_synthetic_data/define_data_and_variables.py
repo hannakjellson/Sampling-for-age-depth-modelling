@@ -64,7 +64,7 @@ def get_hmc_config():
         "ndt": 700,
         "nch": 5,
         "ns": 50000,
-        "sd": 101,
+        "sd": 15,
 
         "dt": 0.005,
 
@@ -73,7 +73,7 @@ def get_hmc_config():
     return hmc_config
 
 def get_data():
-    name = "dayu_d18o"
+    name = "wah_d18o"
     N = 50
     H = 100
 
