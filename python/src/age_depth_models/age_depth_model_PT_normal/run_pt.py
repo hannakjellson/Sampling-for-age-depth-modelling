@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import json
 
-from define_data_and_variables import HMCConfig, PTConfig, Data, pt_config, data, c_data, adam_hash, dict_to_struct, make_dumpable, hash_configs
+from define_data_and_variables import HMCConfig, PTConfig, Data, pt_config, data, c_data, adam_hash, dict_to_struct, make_dumpable, hash_configs, version
 import platform
 from pathlib import Path
 import re
@@ -15,7 +15,7 @@ def main():
     base_dir = Path(__file__).parent 
 
 
-    sp_dir = base_dir / f"output/{data['dn']}/sd_{pt_config["hmcc"]["sd"]}"
+    sp_dir = base_dir / f"output/{data['dn']}/{version}"
     np.random.seed(pt_config['hmcc']['sd'])
     sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (pt_config["nt"], data["N"]))
 
