@@ -37,7 +37,7 @@ bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 weights = np.exp(bias_values)
 
-index = 12
+index = 21
 interesting_depth = index * data["dc"]
 dt = 1
 K = 100

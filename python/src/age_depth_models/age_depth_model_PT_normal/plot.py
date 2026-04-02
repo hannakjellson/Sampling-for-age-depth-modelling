@@ -32,7 +32,7 @@ hmc_config = pt_config["hmcc"]
 cutout = 10000
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 
-index = 12
+index = 21
 interesting_depth = index * data["dc"]
 dt = 1
 K = 100
@@ -141,18 +141,17 @@ plt.savefig(f"{output_dir}/age_depth_fig_jackknife.jpg")
 # plt.show()
 
 # 3. Plotting jackknife along depth
-interp_depth = 50
 ts = np.arange(t_edges[0], t_edges[-1])
-bin_edges = np.arange(np.floor(np.min(age[interp_depth])), np.ceil(np.max(age[interp_depth])) + 1, dtype = int)
+bin_edges = np.arange(np.floor(np.min(age[:, index])), np.ceil(np.max(age[:, index])) + 1, dtype = int)
 bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 fig, ax = plt.subplots(figsize=(6, 4))
-ax.errorbar(bin_centers, C_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], yerr=2*sigma_est_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], fmt='none', color = "grey", capsize=3, label = r"2$\sigma$ errorbar")
-ax.bar(bin_centers,  C_jackknife[int(interp_depth/dz), bin_edges[:-1] - t_edges[0]], width=np.diff(bin_edges), alpha=0.3, color='gray', align='center')
+ax.errorbar(bin_centers, C_jackknife[int(interesting_depth/dz), bin_edges[:-1] - t_edges[0]], yerr=2*sigma_est_jackknife[int(interesting_depth/dz), bin_edges[:-1] - t_edges[0]], fmt='none', color = "grey", capsize=3, label = r"2$\sigma$ errorbar")
+ax.bar(bin_centers,  C_jackknife[int(interesting_depth/dz), bin_edges[:-1] - t_edges[0]], width=np.diff(bin_edges), alpha=0.3, color='gray', align='center')
 ax.set_ylim(0, ylim_max)
 ax.set_xlim(bin_edges[0], bin_edges[-1])
 ax.set_xlabel("Year CE")
 ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} mm)")
 plt.legend(loc = "upper right")
-plt.savefig(f"{output_dir}/samples_along_depth_{interp_depth}_jackknife.jpg")
+plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_jackknife.jpg")
 # plt.show()
