@@ -5,7 +5,7 @@ import ctypes
 import hashlib
 import json
 
-version = "0"
+version = "2"
 
 class ADAMConfig(ctypes.Structure):
     _fields_ = [
@@ -97,10 +97,10 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "ns": 10000,
+        "ns": 100000,
         "sd": 10,
 
-        "dt": 0.0003,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -108,8 +108,8 @@ def get_hmc_config():
 
 def get_pt_config():
     hmc_config = get_hmc_config()
-    ebt = 200
-    nt = 30
+    ebt = 20
+    nt = 20
 
     pt_config = {
         "hmcc": hmc_config,
@@ -122,7 +122,7 @@ def get_pt_config():
     return pt_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "dayu_d18o"
     N = 50
     H = 100
 

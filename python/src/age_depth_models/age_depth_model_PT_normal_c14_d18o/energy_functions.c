@@ -129,7 +129,7 @@ double energy_function(
     prior = fprior(d->N, nl_sed_rates);
     c14_conditional = c14_cond(d, c14_expected_ages);
     D18O_conditional = d18o_cond(d, expected_D18O_ages);
-    *d18o_energy = D18O_conditional;
+    *d18o_energy = c14_conditional + D18O_conditional;
 
     return prior + beta * (c14_conditional + D18O_conditional);
 }
