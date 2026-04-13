@@ -103,11 +103,11 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 20,
-        "ns": 100000,
+        "nch": 30,
+        "ns": 10000,
         "sd": 10,
 
-        "dt": 0.001,
+        "dt": 0.0003,
 
         "sp": None,
     }
@@ -115,8 +115,8 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 20
-    nt = 20
+    ebt = 200
+    nt = 30
 
     opes_config = {
         "hmcc": hmc_config,  # keep the nested config as a dict
@@ -132,7 +132,7 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "dayu_d18o"
+    name = "wah_d18o"
     N = 50
     H = 100
 
@@ -260,7 +260,7 @@ np.random.seed(opes_config['hmcc']['sd'])
 sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
 
 opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-opes_config["df"] = 140 * (opes_config["bs"] - 1)
+opes_config["df"] = 270 * (opes_config["bs"] - 1)
 opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
 
 opes_hash = hash_configs(opes_config, data)
