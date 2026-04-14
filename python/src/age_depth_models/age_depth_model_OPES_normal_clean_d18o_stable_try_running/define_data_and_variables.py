@@ -103,8 +103,8 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 20,
-        "ns": 10000,
+        "nch": 30,
+        "ns": 100000,
         "sd": 10,
 
         "dt": 0.0003,
@@ -125,7 +125,7 @@ def get_opes_config():
         "ebt": ebt,
         "ee": None,
         "dfn": None,
-        "dfd": 1000.0,
+        "dfd": 1500.0,
         "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 1,
     }

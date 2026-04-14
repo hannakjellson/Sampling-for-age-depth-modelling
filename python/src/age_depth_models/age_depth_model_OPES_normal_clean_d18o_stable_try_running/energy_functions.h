@@ -25,7 +25,7 @@ double bias_potential(int num_temps, double *betas, double energy, double *delta
 
 void grad_bias(int N, int num_temps, double *betas, double *variables, double energy, double *gradient, double *delta_F, double *bias_gradient);
 
-void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum, double *delta_F_denominator_sum, double *delta_F, double *bias_out, double *energy_out, double *df_out, int i, int j, int num_samples, double min_dfd, double *max_dfn);
+void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum, double *delta_F_denominator_sum, double *delta_F, double *bias_out, double *energy_out, double *df_out, int i, int j, int num_samples, double min_dfd, double *max_dfn, bool converged);
 
 void stoch_grad_energy_function(
     Data *d, int num_D18O_indices_stoch, int *D18O_indices_stoch, int *c14_indices, double *c14_expected_ages, int *D18O_indices, double *D18O_expected_ages, double *nl_sed_rates, double *gradient);
