@@ -256,7 +256,7 @@ void opes(
                             //     *delta_F_denominator_sum_local -= 1;
                         }
                         update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, max_dfd, max_dfn);
-                        if (i == 0)
+                        if (i == 0 && j % 100 == 0)
                         {
                             printf("df: %f\n", df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1]);
                         }

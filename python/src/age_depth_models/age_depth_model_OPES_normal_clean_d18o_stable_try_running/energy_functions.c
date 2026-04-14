@@ -292,16 +292,6 @@ void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum,
             // if (j <= 1100 + dfd && (idx - j * num_temps == 0))
             //     delta_F_nominator_sum[k] -= dfn[k] / dfd;
         }
-        if (i == 0)
-        {
-            printf("temp_term: %e\n", temp_term);
-            printf("bias: %e\n", bias_out[i * num_samples + j]);
-            printf("diff: %e\n", diff);
-            printf("min_dfd: %e\n", min_dfd);
-            printf("max_dfn: %e\n", max_dfn[k]);
-            printf("dfd: %e\n", *delta_F_denominator_sum);
-            printf("dfn: %e\n", delta_F_nominator_sum[k]);
-        }
         delta_F[k] = min_dfd + log(*delta_F_denominator_sum) - max_dfn[k] - log(delta_F_nominator_sum[k]);
         df_out[i * num_samples * num_temps + j * num_temps + k] = delta_F[k];
     }
