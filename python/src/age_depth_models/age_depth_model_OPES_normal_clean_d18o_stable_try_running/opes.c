@@ -34,10 +34,9 @@ void opes(
 
     double *delta_F_denominator_sum = malloc(sizeof(double));
     double delta_F_nominator_sum[oc->nt];
+    double max_dfd;
+    double max_dfn[oc->nt];
     double delta_F[oc->nt];
-
-    double *delta_F_nominator_track = malloc(oc->hmcc->nch * oc->hmcc->ns * oc->nt * sizeof(double));
-    double *delta_F_denominator_track = malloc(oc->hmcc->nch * oc->hmcc->ns * sizeof(double));
 
     omp_lock_t deltaF_lock;
     omp_init_lock(&deltaF_lock);
@@ -45,9 +44,11 @@ void opes(
     if (oc->sb)
     {
         *delta_F_denominator_sum = oc->dfd;
+        max_dfd = 0;
         for (i = 0; i < oc->nt; i++)
         {
-            delta_F_nominator_sum[i] = oc->dfn[i];
+            max_dfn[i] = oc->df[i] = log(oc->dfn[i] / oc->dfd);
+            delta_F_nominator_sum[i] = oc->dfd;
             delta_F[i] = oc->df[i];
         }
     }
@@ -242,17 +243,23 @@ void opes(
                     if (k == i)
                     {
                         omp_set_lock(&deltaF_lock);
-                        delta_F_denominator_track[i * oc->hmcc->ns + j] = exp(bias_new);
-                        *delta_F_denominator_sum_local += exp(bias_new);
+                        if (bias_new > max_dfd)
+                        {
+                            *delta_F_denominator_sum_local *= exp(max_dfd - bias_new);
+                            max_dfd = bias_new;
+                        }
+                        *delta_F_denominator_sum_local += exp(bias_new - max_dfd);
                         if (j > 1100)
                         {
-                            *delta_F_denominator_sum_local -= delta_F_denominator_track[i * oc->hmcc->ns + j - 1000];
+                            *delta_F_denominator_sum_local -= exp(bias_out[i * oc->hmcc->ns + j - 1000] - max_dfd);
                             // if (j <= 1100 + oc->dfd && i == 0)
                             //     *delta_F_denominator_sum_local -= 1;
                         }
-                        update_delta_F(oc->nt, oc->bs, d18o_energy, delta_F_nominator_sum_local, delta_F_nominator_track, delta_F_denominator_sum_local, delta_F_local, bias_new, df_out, i * oc->hmcc->ns * oc->nt + j * oc->nt, j, oc->dfd, oc->dfn);
-                        if (i == 0 && j % 100 == 0)
+                        update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, max_dfd, max_dfn);
+                        if (i == 0)
+                        {
                             printf("df: %f\n", df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1]);
+                        }
                         omp_unset_lock(&deltaF_lock);
                     }
 #pragma omp barrier
@@ -275,7 +282,5 @@ void opes(
         printf("%f\n", mean_acceptance);
     }
     free(delta_F_denominator_sum);
-    free(delta_F_denominator_track);
-    free(delta_F_nominator_track);
     omp_destroy_lock(&deltaF_lock);
 }

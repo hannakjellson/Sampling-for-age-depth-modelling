@@ -271,23 +271,39 @@ void grad_bias(int N, int num_temps, double *betas, double *variables, double d1
     }
 }
 
-void update_delta_F(int num_temps, double *betas, double energy, double *delta_F_nominator_sum, double *delta_F_nominator_track, double *delta_F_denominator_sum, double *delta_F, double bias, double *df_out, int idx, int j, double dfd, double *dfn)
+void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum, double *delta_F_denominator_sum, double *delta_F, double *bias_out, double *d18o_energy_out, double *df_out, int i, int j, int num_samples, double min_dfd, double *max_dfn)
 {
-    int i;
+    int k;
     double temp_term;
-    for (i = 0; i < num_temps; i++)
+    double diff;
+    for (k = 0; k < num_temps; k++)
     {
-        temp_term = (betas[i] - 1) * energy;
-        delta_F_nominator_sum[i] += exp(-temp_term + bias);
-        delta_F_nominator_track[idx + i] = exp(-temp_term + bias);
+        temp_term = (betas[k] - 1) * d18o_energy_out[i * num_samples + j];
+        diff = -temp_term + bias_out[i * num_samples + j];
+        if (diff > max_dfn[k])
+        {
+            delta_F_nominator_sum[k] *= exp(max_dfn[k] - diff);
+            max_dfn[k] = diff;
+        }
+        delta_F_nominator_sum[k] += exp(diff - max_dfn[k]);
         if (j > 1100)
         {
-            delta_F_nominator_sum[i] -= delta_F_nominator_track[idx - 1000 * num_temps + i];
+            delta_F_nominator_sum[k] -= exp(-(betas[k] - 1) * d18o_energy_out[i * num_samples + j - 1000] + bias_out[i * num_samples + j - 1000] - max_dfn[k]);
             // if (j <= 1100 + dfd && (idx - j * num_temps == 0))
-            //     delta_F_nominator_sum[i] -= dfn[i] / dfd;
+            //     delta_F_nominator_sum[k] -= dfn[k] / dfd;
         }
-        delta_F[i] = log(*delta_F_denominator_sum) - log(delta_F_nominator_sum[i]);
-        df_out[idx + i] = delta_F[i];
+        if (i == 0)
+        {
+            printf("temp_term: %e\n", temp_term);
+            printf("bias: %e\n", bias_out[i * num_samples + j]);
+            printf("diff: %e\n", diff);
+            printf("min_dfd: %e\n", min_dfd);
+            printf("max_dfn: %e\n", max_dfn[k]);
+            printf("dfd: %e\n", *delta_F_denominator_sum);
+            printf("dfn: %e\n", delta_F_nominator_sum[k]);
+        }
+        delta_F[k] = min_dfd + log(*delta_F_denominator_sum) - max_dfn[k] - log(delta_F_nominator_sum[k]);
+        df_out[i * num_samples * num_temps + j * num_temps + k] = delta_F[k];
     }
 }
 
