@@ -37,7 +37,7 @@ void opes(
     double max_dfd;
     double max_dfn[oc->nt];
     double delta_F[oc->nt];
-    bool converged;
+    int stop_throw_idx = INT_MAX;
 
     omp_lock_t deltaF_lock;
     omp_init_lock(&deltaF_lock);
@@ -250,13 +250,13 @@ void opes(
                             max_dfd = bias_new;
                         }
                         *delta_F_denominator_sum_local += exp(bias_new - max_dfd);
-                        if (j > 1100 && !converged)
+                        if (j > 1100 && j < stop_throw_idx)
                         {
                             *delta_F_denominator_sum_local -= exp(bias_out[i * oc->hmcc->ns + j - 1000] - max_dfd);
                             // if (j <= 1100 + oc->dfd && i == 0)
                             //     *delta_F_denominator_sum_local -= 1;
                         }
-                        update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, max_dfd, max_dfn, converged);
+                        update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, max_dfd, max_dfn, stop_throw_idx);
                         if (i == 0 && j % 100 == 0)
                         {
                             printf("df: %f\n", df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1]);
@@ -270,8 +270,8 @@ void opes(
             {
                 for (k = 0; k < oc->nt; k++)
                     df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + k] = delta_F_local[k];
-                if (!converged && j > 1100 && abs(df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] - df_out[i * oc->hmcc->ns * oc->nt + (j - 1000) * oc->nt + oc->nt - 1]) < 10)
-                    converged = true;
+                if (stop_throw_idx == INT_MAX && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - 1) * oc->nt + oc->nt - 1])
+                    stop_throw_idx = 2 * j;
             }
         }
 

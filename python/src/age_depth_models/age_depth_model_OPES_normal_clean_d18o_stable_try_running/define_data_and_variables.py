@@ -104,7 +104,7 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 30,
-        "ns": 100000,
+        "ns": 10000,
         "sd": 10,
 
         "dt": 0.0003,
@@ -115,7 +115,7 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 300
+    ebt = 400
     nt = 30
 
     opes_config = {
