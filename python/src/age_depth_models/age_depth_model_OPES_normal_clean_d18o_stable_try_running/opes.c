@@ -261,6 +261,8 @@ void opes(
                         {
                             printf("df: %f\n", df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1]);
                         }
+                        if (stop_throw_idx == INT_MAX && i == oc->hmcc->nch - 1 && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - 1) * oc->nt + oc->nt - 1])
+                            stop_throw_idx = 2 * j;
                         omp_unset_lock(&deltaF_lock);
                     }
 #pragma omp barrier
@@ -270,8 +272,6 @@ void opes(
             {
                 for (k = 0; k < oc->nt; k++)
                     df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + k] = delta_F_local[k];
-                if (stop_throw_idx == INT_MAX && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - 1) * oc->nt + oc->nt - 1])
-                    stop_throw_idx = 2 * j;
             }
         }
 
