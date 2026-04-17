@@ -271,7 +271,7 @@ void grad_bias(int N, int num_temps, double *betas, double *variables, double d1
     }
 }
 
-void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum, double *delta_F_denominator_sum, double *delta_F, double *bias_out, double *d18o_energy_out, double *df_out, int i, int j, int num_samples, double min_dfd, double *max_dfn, int stop_throw_idx)
+void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum, double *delta_F_denominator_sum, double *delta_F, double *bias_out, double *d18o_energy_out, double *df_out, int i, int j, int num_samples, double max_dfd, double *max_dfn, int stop_throw_idx, int w)
 {
     int k;
     double temp_term;
@@ -286,13 +286,13 @@ void update_delta_F(int num_temps, double *betas, double *delta_F_nominator_sum,
             max_dfn[k] = diff;
         }
         delta_F_nominator_sum[k] += exp(diff - max_dfn[k]);
-        if (j < stop_throw_idx && j > 1100)
+        if (j < stop_throw_idx && j > 100 + w)
         {
-            delta_F_nominator_sum[k] -= exp(-(betas[k] - 1) * d18o_energy_out[i * num_samples + j - 1000] + bias_out[i * num_samples + j - 1000] - max_dfn[k]);
+            delta_F_nominator_sum[k] -= exp(-(betas[k] - 1) * d18o_energy_out[i * num_samples + j - w] + bias_out[i * num_samples + j - w] - max_dfn[k]);
             // if (j <= 1100 + dfd && (idx - j * num_temps == 0))
             //     delta_F_nominator_sum[k] -= dfn[k] / dfd;
         }
-        delta_F[k] = min_dfd + log(*delta_F_denominator_sum) - max_dfn[k] - log(delta_F_nominator_sum[k]);
+        delta_F[k] = max_dfd + log(*delta_F_denominator_sum) - max_dfn[k] - log(delta_F_nominator_sum[k]);
         df_out[i * num_samples * num_temps + j * num_temps + k] = delta_F[k];
     }
 }

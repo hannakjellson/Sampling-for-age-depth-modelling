@@ -5,7 +5,7 @@ import ctypes
 import hashlib
 import json
 
-version = "0"
+version = "2"
 
 class ADAMConfig(ctypes.Structure):
     _fields_ = [
@@ -35,6 +35,7 @@ class OPESConfig(ctypes.Structure):
 
         ("nhmc", ctypes.c_int64), # number of hmc steps before updating bias
         ("nt", ctypes.c_int64), # number of temperatures
+        ("w", ctypes.c_int64), # window width
 
         ("ebt", ctypes.c_double), # highest temperature
         ("df", ctypes.POINTER(ctypes.c_double)), # expected energy
@@ -103,11 +104,11 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 30,
-        "ns": 10000,
+        "nch": 20,
+        "ns": 100000,
         "sd": 10,
 
-        "dt": 0.0003,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -115,8 +116,8 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 400
-    nt = 30
+    ebt = 20
+    nt = 20
 
     opes_config = {
         "hmcc": hmc_config,  # keep the nested config as a dict
@@ -125,14 +126,15 @@ def get_opes_config():
         "ebt": ebt,
         "ee": None,
         "dfn": None,
-        "dfd": 1500.0,
+        "dfd": 1000.0,
+        "w": 1000,
         "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 1,
     }
     return opes_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "dayu_d18o"
     N = 50
     H = 100
 
@@ -260,7 +262,15 @@ np.random.seed(opes_config['hmcc']['sd'])
 sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
 
 opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-opes_config["df"] = 270 * (opes_config["bs"] - 1)
+opes_config["df"] = 75 * (opes_config["bs"] - 1)
+# opes_config["df"] = np.array([
+#     0.0, -56.51038753, -103.38256483, -142.43304453, -175.16066279,
+#     -202.77809948, -226.2427395, -246.32859977, -263.67733716, -278.83599658,
+#     -292.27704417, -304.37720122, -315.42069105, -325.62025521, -335.11587046,
+#     -344.00324158, -352.36528265, -360.24795926, -367.68007085, -374.7156389,
+#     -381.41808288, -387.83368447, -393.98291978, -399.84196124, -405.3271694,
+#     -410.3406354, -414.83213878, -418.80785315, -422.30434665, -425.36234726
+# ])
 opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
 
 opes_hash = hash_configs(opes_config, data)

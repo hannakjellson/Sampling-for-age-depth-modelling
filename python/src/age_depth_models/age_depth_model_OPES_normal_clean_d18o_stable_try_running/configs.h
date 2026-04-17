@@ -37,6 +37,7 @@ typedef struct
     HMCConfig *hmcc; /* hmc config */
     int64_t nhmc;    /* number of HMC steps before updating bias */
     int64_t nt;      /* number of temperatures */
+    int64_t w;       /* window width */
 
     double ebt;  /* highest temperature */
     double *df;  /* energy expectation */

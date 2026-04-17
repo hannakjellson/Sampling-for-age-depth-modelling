@@ -34,7 +34,7 @@ void opes(
 
     double *delta_F_denominator_sum = malloc(sizeof(double));
     double delta_F_nominator_sum[oc->nt];
-    double max_dfd;
+    double *max_dfd = malloc(sizeof(double));
     double max_dfn[oc->nt];
     double delta_F[oc->nt];
     int stop_throw_idx = INT_MAX;
@@ -45,10 +45,10 @@ void opes(
     if (oc->sb)
     {
         *delta_F_denominator_sum = oc->dfd;
-        max_dfd = 0;
+        *max_dfd = 0;
         for (i = 0; i < oc->nt; i++)
         {
-            max_dfn[i] = oc->df[i] = log(oc->dfn[i] / oc->dfd);
+            max_dfn[i] = log(oc->dfn[i] / oc->dfd);
             delta_F_nominator_sum[i] = oc->dfd;
             delta_F[i] = oc->df[i];
         }
@@ -89,8 +89,10 @@ void opes(
         double d18o_energy_old;
         double bias_old;
         double bias_new;
-        double *delta_F_denominator_sum_local = malloc(sizeof(double));
+        double *delta_F_denominator_sum_local;
         double *delta_F_nominator_sum_local;
+        double *max_dfd_local;
+        double *max_dfn_local;
         double *delta_F_local;
 
         // HMC variables
@@ -105,16 +107,23 @@ void opes(
             delta_F_denominator_sum_local = delta_F_denominator_sum;
             delta_F_nominator_sum_local = delta_F_nominator_sum;
             delta_F_local = delta_F;
+            max_dfd_local = max_dfd;
+            max_dfn_local = max_dfn;
         }
         else
         {
-            *delta_F_denominator_sum_local = oc->dfd;
+            delta_F_denominator_sum_local = malloc(sizeof(double));
+            max_dfd_local = malloc(sizeof(double));
             delta_F_nominator_sum_local = malloc(oc->nt * sizeof(double));
+            max_dfn_local = malloc(oc->nt * sizeof(double));
             delta_F_local = malloc(oc->nt * sizeof(double));
 
+            *delta_F_denominator_sum_local = oc->dfd;
+            *max_dfd_local = 0;
             for (j = 0; j < oc->nt; j++)
             {
-                delta_F_nominator_sum_local[j] = oc->dfn[j];
+                max_dfn_local[j] = log(oc->dfn[j] / oc->dfd);
+                delta_F_nominator_sum_local[j] = oc->dfd;
                 delta_F_local[j] = oc->df[j];
             }
         }
@@ -137,7 +146,7 @@ void opes(
                 printf("Variables are nan, aborting");
                 exit(EXIT_FAILURE);
             }
-            if (j % 100 == 0)
+            if (j % 100 == 0 && i == 0)
             {
                 printf("Sample %d\n", j);
             }
@@ -244,25 +253,26 @@ void opes(
                     if (k == i)
                     {
                         omp_set_lock(&deltaF_lock);
-                        if (bias_new > max_dfd)
+                        if (bias_new > *max_dfd_local)
                         {
-                            *delta_F_denominator_sum_local *= exp(max_dfd - bias_new);
-                            max_dfd = bias_new;
+                            *delta_F_denominator_sum_local *= exp(*max_dfd_local - bias_new);
+                            *max_dfd_local = bias_new;
                         }
-                        *delta_F_denominator_sum_local += exp(bias_new - max_dfd);
-                        if (j > 1100 && j < stop_throw_idx)
+                        *delta_F_denominator_sum_local += exp(bias_new - *max_dfd_local);
+                        if (j > 100 + oc->w && j < stop_throw_idx)
                         {
-                            *delta_F_denominator_sum_local -= exp(bias_out[i * oc->hmcc->ns + j - 1000] - max_dfd);
-                            // if (j <= 1100 + oc->dfd && i == 0)
-                            //     *delta_F_denominator_sum_local -= 1;
+                            *delta_F_denominator_sum_local -= exp(bias_out[i * oc->hmcc->ns + j - oc->w] - *max_dfd_local);
                         }
-                        update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, max_dfd, max_dfn, stop_throw_idx);
+                        update_delta_F(oc->nt, oc->bs, delta_F_nominator_sum_local, delta_F_denominator_sum_local, delta_F_local, bias_out, d18o_energy_out, df_out, i, j, oc->hmcc->ns, *max_dfd_local, max_dfn_local, stop_throw_idx, oc->w);
                         if (i == 0 && j % 100 == 0)
                         {
                             printf("df: %f\n", df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1]);
                         }
-                        if (stop_throw_idx == INT_MAX && i == oc->hmcc->nch - 1 && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - 1) * oc->nt + oc->nt - 1])
+                        if (j > 100 + oc->w && stop_throw_idx == INT_MAX && i == oc->hmcc->nch - 1 && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - oc->w) * oc->nt + oc->nt - 1])
+                        {
                             stop_throw_idx = 2 * j;
+                            printf("sti: %d\n", stop_throw_idx);
+                        }
                         omp_unset_lock(&deltaF_lock);
                     }
 #pragma omp barrier
@@ -280,10 +290,13 @@ void opes(
             free(delta_F_nominator_sum_local);
             free(delta_F_local);
             free(delta_F_denominator_sum_local);
+            free(max_dfd_local);
+            free(max_dfn_local);
         }
         mean_acceptance /= (oc->hmcc->ns * oc->nhmc);
         printf("%f\n", mean_acceptance);
     }
     free(delta_F_denominator_sum);
+    free(max_dfd);
     omp_destroy_lock(&deltaF_lock);
 }
