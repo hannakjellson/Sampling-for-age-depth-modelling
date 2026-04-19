@@ -105,7 +105,7 @@ def get_hmc_config():
     hmc_config = {
         "ndt": 700,
         "nch": 20,
-        "ns": 100000,
+        "ns": 1000,
         "sd": 10,
 
         "dt": 0.001,
@@ -126,8 +126,9 @@ def get_opes_config():
         "ebt": ebt,
         "ee": None,
         "dfn": None,
-        "dfd": 1000.0,
-        "w": 1000,
+        "dfd":None,
+        "df":None,
+        "w":None,
         "bs": np.ascontiguousarray(1 / np.geomspace(1, ebt, nt)),  # convert to list for JSON/dict
         "sb": 1,
     }
@@ -262,7 +263,13 @@ np.random.seed(opes_config['hmcc']['sd'])
 sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
 
 opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-opes_config["df"] = 75 * (opes_config["bs"] - 1)
+opes_config["w"] = int(np.max([10, opes_config["hmcc"]["ns"]/100]))
+opes_config["dfd"] = float(np.max([int(opes_config["w"] * opes_config["hmcc"]["nch"] * 0.05), 1]))
+opes_config["df"] = np.sum(data["nd18o"] / 2) * (opes_config["bs"] - 1)
+print(opes_config["w"])
+print(opes_config["dfd"])
+print(opes_config["df"])
+print(opes_config["hmcc"]["ns"])
 # opes_config["df"] = np.array([
 #     0.0, -56.51038753, -103.38256483, -142.43304453, -175.16066279,
 #     -202.77809948, -226.2427395, -246.32859977, -263.67733716, -278.83599658,
