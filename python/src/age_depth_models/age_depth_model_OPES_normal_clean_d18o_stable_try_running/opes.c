@@ -270,7 +270,7 @@ void opes(
                         }
                         if (j > 100 + oc->w && stop_throw_idx == INT_MAX && i == oc->hmcc->nch - 1 && df_out[i * oc->hmcc->ns * oc->nt + j * oc->nt + oc->nt - 1] > df_out[i * oc->hmcc->ns * oc->nt + (j - oc->w) * oc->nt + oc->nt - 1])
                         {
-                            stop_throw_idx = 2 * j;
+                            stop_throw_idx = (oc->hmcc->nch >= 10) ? (int)((oc->hmcc->nch / 10) * j) : 2 * j; // Change to 5 to make more robust?
                             printf("sti: %d\n", stop_throw_idx);
                         }
                         omp_unset_lock(&deltaF_lock);

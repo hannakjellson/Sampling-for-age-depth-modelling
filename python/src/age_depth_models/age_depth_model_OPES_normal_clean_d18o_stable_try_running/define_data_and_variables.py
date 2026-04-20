@@ -5,7 +5,7 @@ import ctypes
 import hashlib
 import json
 
-version = "2"
+version = "0"
 
 class ADAMConfig(ctypes.Structure):
     _fields_ = [
@@ -104,11 +104,11 @@ def get_adam_config():
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 20,
-        "ns": 1000,
+        "nch": 30,
+        "ns": 100000,
         "sd": 10,
 
-        "dt": 0.001,
+        "dt": 0.0003,
 
         "sp": None,
     }
@@ -116,8 +116,8 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()  # assume this returns an HMCConfig as a dict or struct
-    ebt = 20
-    nt = 20
+    ebt = 400
+    nt = 30
 
     opes_config = {
         "hmcc": hmc_config,  # keep the nested config as a dict
@@ -135,7 +135,7 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "dayu_d18o"
+    name = "wah_d18o"
     N = 50
     H = 100
 
@@ -265,7 +265,7 @@ sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_con
 opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
 opes_config["w"] = int(np.max([10, opes_config["hmcc"]["ns"]/100]))
 opes_config["dfd"] = float(np.max([int(opes_config["w"] * opes_config["hmcc"]["nch"] * 0.05), 1]))
-opes_config["df"] = np.sum(data["nd18o"] / 2) * (opes_config["bs"] - 1)
+opes_config["df"] = (data["nd18o"] / 2) * (opes_config["bs"] - 1)
 print(opes_config["w"])
 print(opes_config["dfd"])
 print(opes_config["df"])
