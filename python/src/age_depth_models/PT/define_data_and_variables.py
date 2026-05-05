@@ -5,16 +5,29 @@ import ctypes
 import hashlib
 import json
 
+version = "0"
+
 class HMCConfig(ctypes.Structure):
     _fields_ = [
         ("ndt", ctypes.c_int64), # number of time steps
-        ("nch", ctypes.c_int64), # number of chains
         ("ns", ctypes.c_int64), # number of samples
         ("sd", ctypes.c_int64), # seed
 
         ("dt", ctypes.c_double), # time step
 
         ("sp", ctypes.POINTER(ctypes.c_double)), # starting points
+    ]
+
+class PTConfig(ctypes.Structure):
+    _fields_ = [
+        ("hmcc", ctypes.POINTER(HMCConfig)), # HMCConfig
+
+        ("nhmc", ctypes.c_int64), # number of hmc steps before updating bias
+        ("nt", ctypes.c_int64), # number of temperatures
+
+        ("ebt", ctypes.c_double), # highest temperature
+
+        ("bs", ctypes.POINTER(ctypes.c_double)), # betas (1/temperatures)
     ]
 
 class Data(ctypes.Structure):
@@ -62,18 +75,32 @@ def dict_to_struct(d: dict, struct_type):
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 5,
-        "ns": 50000,
-        "sd": 101,
+        "ns": 100000,
+        "sd": 10,
 
-        "dt": 0.005,
+        "dt": 0.0003,
 
         "sp": None,
     }
     return hmc_config
 
+def get_pt_config():
+    hmc_config = get_hmc_config()
+    ebt = 400
+    nt = 30
+
+    pt_config = {
+        "hmcc": hmc_config,
+        "nhmc": 1,
+        "nt": nt,
+        "ebt": ebt,
+
+        "bs": np.ascontiguousarray(np.geomspace(1.0, 1.0 / ebt, nt)[::-1]),  # This is not good
+    }
+    return pt_config
+
 def get_data():
-    name = "dayu_d18o"
+    name = "wah_d18o"
     N = 50
     H = 100
 
@@ -81,7 +108,7 @@ def get_data():
     d18o_timeseries = None
 
     df = pd.read_csv(
-        os.path.join(base_path, name, "data.txt"), sep="\t"
+        os.path.join(base_path, name, version, "data.txt"), sep="\t"
     )
     d18o_timeseries = pd.read_csv(
         os.path.join(base_path, name, "ref.txt"), sep="\t"
@@ -97,7 +124,6 @@ def get_data():
     d18o_reference_times = (
         d18o_timeseries["Year"].to_numpy()
     )
-
     d18o_reference = (
         d18o_timeseries["ref"].to_numpy()
     )
@@ -113,7 +139,7 @@ def get_data():
     d18o_sigma = d18o_sigma[d18o_mask][::-1]
     d18o_depths = depths[d18o_mask][
         ::-1
-    ]  # This does not overlap with the c14 depths in the file.
+    ]
     true_ages_d18O = true_ages[d18o_mask][::-1]
 
     data = {
@@ -144,8 +170,9 @@ def get_data():
         "d18ort": np.ascontiguousarray(d18o_reference_times, dtype = np.float64),
         "d18ota": np.ascontiguousarray(true_ages_d18O, dtype = np.float64),
 
-        "dn": name, # .encode("utf-8")?
+        "dn": name,
     }
+
     return data
 
 def make_dumpable(obj):
@@ -181,7 +208,6 @@ def hash_configs(*configs, algo="sha256", length=10):
     """
     sanitized = sanitize(configs)
 
-    # Canonical JSON: sorted keys, no whitespace
     canonical = json.dumps(
         sanitized,
         sort_keys=True,
@@ -193,20 +219,9 @@ def hash_configs(*configs, algo="sha256", length=10):
 
     return h.hexdigest()[:length]
 
+pt_config = get_pt_config()
 data = get_data()
 
 c_data = dict_to_struct(
     data, Data
 )
-
-hmc_config = get_hmc_config()
-
-np.random.seed(hmc_config["sd"])
-sp = np.random.multivariate_normal(data["pm"]* np.ones(data["N"]), data["ps"]**2 * np.eye(data["N"]), (hmc_config["nch"]))
-sp = np.exp(sp)
-hmc_config["sp"] = np.ascontiguousarray(sp)
-
-c_hmc_config = dict_to_struct(
-    hmc_config, HMCConfig
-)
-
