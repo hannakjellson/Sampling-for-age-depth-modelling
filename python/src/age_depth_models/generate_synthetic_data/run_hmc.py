@@ -17,13 +17,13 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     # Save hmc_config
-    # with open(os.path.join(output_dir, "hmc_config.json"), "w") as f:
-    #     dump_hmc_config = make_dumpable(hmc_config)
-        # json.dump(dump_hmc_config, f, indent=2)
+    with open(os.path.join(output_dir, "hmc_config.json"), "w") as f:
+        dump_hmc_config = make_dumpable(hmc_config)
+        json.dump(dump_hmc_config, f, indent=2)
     # Save data
-    # with open(os.path.join(output_dir, "data.json"), "w") as f:
-    #     dump_data = make_dumpable(data)
-    #     json.dump(dump_data, f, indent=2)
+    with open(os.path.join(output_dir, "data.json"), "w") as f:
+        dump_data = make_dumpable(data)
+        json.dump(dump_data, f, indent=2)
 
     # Load library depending on OS
     if platform.system() == "Windows":
@@ -57,12 +57,12 @@ def main():
     samples = np.ctypeslib.as_array(samples_out)
     samples = np.reshape(samples, (hmc_config["nch"], hmc_config["ns"], data["N"]))
     outdir_samples = f"{output_dir}/samples.npy"
-    # np.save(outdir_samples, samples)
+    np.save(outdir_samples, samples)
 
     energy_values = np.ctypeslib.as_array(energy_out)
     energy_values = np.reshape(energy_values, (hmc_config["nch"], hmc_config["ns"]))
     outdir_energy =  f"{output_dir}/energy.npy"
-    # np.save(outdir_energy, energy_values)
+    np.save(outdir_energy, energy_values)
     print("------Done sampling------")
 
     print("------Generating 3 sets of reference data and plotting------")
@@ -206,7 +206,7 @@ def main():
         plt.legend(loc = "upper right")
         plt.tight_layout()
         plt.savefig(f"{output_dir}/{i}/ad_sample.jpg")
-        # plt.show()
+        plt.show()
 
         # ---------Plotting generated data and reference function-----------
         fig, (ax3, ax2) = plt.subplots(2, 1, figsize=(6, 4), sharex=False)
@@ -257,7 +257,7 @@ def main():
         ax3.xaxis.set_label_position('top')
         plt.tight_layout()
         plt.savefig(f"{output_dir}/{i}/data_fig.jpg")
-        # plt.show()
+        plt.show()
 
 
 
