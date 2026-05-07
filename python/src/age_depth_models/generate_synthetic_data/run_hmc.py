@@ -128,7 +128,8 @@ def main():
         model_ages_list.append(model_age)
 
         depths_interp = np.interp(data["d18ort"], model_age[::-1], data["cs"][::-1], right = np.nan, left = np.nan)[::-1]
-        d18O_actual = np.interp(data["d18od"], depths_interp, data["d18or"][::-1], right = np.nan, left = np.nan) + rng.normal(loc=0, scale=data["d18os"], size=len(data["d18od"]))
+        d18O_actual_nr = np.interp(data["d18od"], depths_interp, data["d18or"][::-1], right = np.nan, left = np.nan)
+        d18O_actual = d18O_actual_nr + rng.normal(loc=0, scale=data["d18os"], size=len(data["d18od"]))
         years_actual = np.interp(data["d18od"], data["cs"], model_age, right = np.nan, left = np.nan)
         years_c14_actual = np.interp(data["c14d"],data["cs"], model_age, right = np.nan, left = np.nan)
 
@@ -156,7 +157,7 @@ def main():
         file_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(file_path, sep="\t", index=False)
 
-        # np.save(f"{output_dir}/{i}/true_sample.npy", sample)
+        np.save(f"{output_dir}/{i}/true_sample.npy", sample)
 
 
         # --------Plotting generated age-depth model and samples----------
@@ -227,6 +228,8 @@ def main():
             alpha=1,
             label="Measurements ± uncertainty"
         )
+
+        ax2.plot(data["d18od"], d18O_actual_nr, color = "red", alpha = 0.5, linewidth = 1)
 
         if "biw" in data["dn"]:
             ax2.set_xlabel("Depth of sediment [cm]") 

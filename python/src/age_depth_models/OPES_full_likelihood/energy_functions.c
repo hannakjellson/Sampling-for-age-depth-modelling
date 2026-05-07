@@ -128,7 +128,7 @@ double energy_function(
     prior = fprior(d->N, nl_sed_rates);
     c14_conditional = c14_cond(d, c14_expected_ages);
     D18O_conditional = d18o_cond(d, expected_D18O_ages);
-    *d18o_energy = D18O_conditional;
+    *d18o_energy = c14_conditional + D18O_conditional;
 
     return prior + c14_conditional + D18O_conditional;
 }
@@ -138,7 +138,7 @@ void grad_energy_function(
 {
     // derivative of -log(p(z|data)) with respect to z
     int i, l, j;
-    double f_l, diff, grad, d18o_grad;
+    double f_l, diff, grad, d18o_grad, val;
     double c14_conditional_term;
 
     double D18O_conditional_term;
@@ -166,8 +166,10 @@ void grad_energy_function(
                                               : 0.0;
             if (f_l != 0.0)
             {
-                double diff = d->c14[i] - expected_c14_ages[i];
-                grad -= diff * f_l * d->ps * sed_rates[l] * d->ic14v[i];
+                diff = d->c14[i] - expected_c14_ages[i];
+                val = diff * f_l * d->ps * sed_rates[l] * d->ic14v[i];
+                grad -= val;
+                d18o_grad -= val;
             }
         }
 
@@ -179,8 +181,8 @@ void grad_energy_function(
                                               : 0.0;
             if (f_l != 0.0)
             {
-                double diff = d->d18o[i] - D18O_reference_interp[i];
-                double val = diff * D18O_interp_derivative[i] * f_l * d->ps * sed_rates[l] * d->id18ov[i];
+                diff = d->d18o[i] - D18O_reference_interp[i];
+                val = diff * D18O_interp_derivative[i] * f_l * d->ps * sed_rates[l] * d->id18ov[i];
                 grad -= val;
                 d18o_grad -= val;
             }

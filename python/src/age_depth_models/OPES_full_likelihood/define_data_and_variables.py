@@ -239,9 +239,9 @@ np.random.seed(opes_config['hmcc']['sd'])
 sp = np.random.lognormal(mean = data["pm"], sigma = data["ps"], size = (opes_config["hmcc"]["nch"], data["N"]))
 
 opes_config["hmcc"]["sp"] = np.ascontiguousarray(sp)
-opes_config["w"] = int(np.max([100, opes_config["hmcc"]["ns"]/100]))
-opes_config["dfd"] = float(np.max([int(opes_config["w"] * opes_config["hmcc"]["nch"] * 0.05), 1]))
-opes_config["df"] = (data["nd18o"] / 2) * (opes_config["bs"] - 1)
+opes_config["w"] = int(opes_config["hmcc"]["ns"]/100)
+opes_config["dfd"] = float(int(opes_config["w"] * opes_config["hmcc"]["nch"] * 0.05))
+opes_config["df"] = (data["nd18o"] / 2 + data["nc14"]/2) * (opes_config["bs"] - 1)
 opes_config["dfn"] = np.exp(-opes_config["df"])*opes_config["dfd"]
 
 opes_hash = hash_configs(opes_config, data)

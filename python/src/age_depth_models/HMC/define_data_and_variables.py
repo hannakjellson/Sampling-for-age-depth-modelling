@@ -64,18 +64,18 @@ def dict_to_struct(d: dict, struct_type):
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 30,
-        "ns": 100000,
+        "nch": 5,
+        "ns": 10000,
         "sd": 10,
 
-        "dt": 0.001,
+        "dt": 0.0001,
 
         "sp": None,
     }
     return hmc_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "dayu_d18o_edit"
     N = 50
     H = 100
 

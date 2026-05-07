@@ -64,7 +64,7 @@ def get_hmc_config():
         "ndt": 700,
         "nch": 5,
         "ns": 50000,
-        "sd": 101,
+        "sd": 1,
 
         "dt": 0.005,
 
@@ -73,11 +73,11 @@ def get_hmc_config():
     return hmc_config
 
 def get_data():
-    name = "dayu_d18o_edit"
+    name = "biw_dec_edit"
     N = 50
-    H = 100
+    H = 1000
 
-    base_path = "../../../../data/"
+    base_path = "../../../../data_no_ref/"
     d18o_timeseries = None
 
     df = pd.read_csv(
@@ -124,8 +124,8 @@ def get_data():
 
         "H": H,
         "dc": H / N,
-        "pm": 1.71472,
-        "ps": 0.7107,
+        "pm": 1.9453,
+        "ps": 0.636761,
         "th": true_ages[0],
 
         "cs": np.ascontiguousarray(np.linspace(0, H, N + 1), dtype = np.float64),

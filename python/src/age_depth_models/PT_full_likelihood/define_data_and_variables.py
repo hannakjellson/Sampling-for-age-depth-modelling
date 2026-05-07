@@ -78,7 +78,7 @@ def get_hmc_config():
         "ns": 100000,
         "sd": 10,
 
-        "dt": 0.0003,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -86,8 +86,8 @@ def get_hmc_config():
 
 def get_pt_config():
     hmc_config = get_hmc_config()
-    ebt = 200
-    nt = 30
+    ebt = 20
+    nt = 20
 
     pt_config = {
         "hmcc": hmc_config,
@@ -100,7 +100,7 @@ def get_pt_config():
     return pt_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "dayu_d18o_edit"
     N = 50
     H = 100
 

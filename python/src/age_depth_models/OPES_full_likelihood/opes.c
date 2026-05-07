@@ -16,7 +16,7 @@
 #include "configs.h"
 
 void opes(
-    OPESConfig *oc, Data *d, double *samples_out, double *energy_out, double *bias_out, double *df_out)
+    OPESConfig *oc, Data *d, double *samples_out, double *energy_out, double *d18o_energy_out, double *bias_out, double *df_out)
 {
     int i;
     int c14_depth_indices[d->nc14];
