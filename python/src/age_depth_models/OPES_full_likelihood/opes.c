@@ -184,6 +184,7 @@ void opes(
                     expected_ages(d->N, d->dc, d->cs, d->th, d->nc14, d->c14d, sed_rates, c14_depth_indices, c14_expected_ages);
                     expected_ages(d->N, d->dc, d->cs, d->th, d->nd18o, d->d18od, sed_rates, D18O_depth_indices, D18O_expected_ages);
 
+                    d18o_energy = d18o_cond(d, D18O_expected_ages) + c14_cond(d, c14_expected_ages);
                     grad_energy_function(d, c14_depth_indices, c14_expected_ages, D18O_depth_indices, D18O_expected_ages, variables, gradient, d18o_gradient);
                     grad_bias(d->N, oc->nt, oc->bs, variables, d18o_energy, d18o_gradient, delta_F_local, bias_gradient);
 
