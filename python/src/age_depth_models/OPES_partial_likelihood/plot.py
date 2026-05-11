@@ -35,7 +35,7 @@ print(weights)
 
 index = 35
 K = 100
-t_edges = [-800, 2000]
+t_edges = [-8000, 2000]
 
 dt = 1 if not "biw" in data["dn"] else 10
 dz = 0.1 if not "biw" in data["dn"] else 1
