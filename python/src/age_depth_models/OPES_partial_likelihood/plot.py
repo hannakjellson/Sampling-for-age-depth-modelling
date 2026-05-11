@@ -29,7 +29,8 @@ samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 temp_index = 22
 extra_label = f"_{temp_index}" if temp_index!=0 else ""
 print(1/opes_config["bs"][temp_index])
-weights = np.exp(bias_values + (1-opes_config["bs"][temp_index]) * d18o_energy_values)
+weight_exponent = bias_values + (1-opes_config["bs"][temp_index]) * d18o_energy_values
+weights = np.exp(weight_exponent - np.max(weight_exponent))
 print(weights)
 
 index = 39
