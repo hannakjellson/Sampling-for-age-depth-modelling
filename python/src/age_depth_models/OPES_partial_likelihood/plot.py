@@ -22,18 +22,18 @@ opes_hash = hash_configs(opes_config, data)
 output_dir = sp_dir / f"{opes_hash}"
 hmc_config = opes_config["hmcc"]
 
-cutout = 10000
+cutout = 20000
 bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
-energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
+d18o_energy_values = np.load(f"{output_dir}/d18o_energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 temp_index = 22
 extra_label = f"_{temp_index}" if temp_index!=0 else ""
 print(1/opes_config["bs"][temp_index])
-weights = np.exp(bias_values + (1-opes_config["bs"][temp_index]) * energy_values)
+weights = np.exp(bias_values + (1-opes_config["bs"][temp_index]) * d18o_energy_values)
 print(weights)
 
 index = 39
-K = 10
+K = 100
 t_edges = [1000, 2010]
 
 dt = 1 if not "biw" in data["dn"] else 10
@@ -54,9 +54,6 @@ for k in range(K):
     b_w = flat_weights[start:end]
     block_weight_sum[k] = np.sum(b_w)
 # block_weight_sum_squared = block_weight_sum**2
-print(block_weight_sum)
-# print(block_weight_sum_squared)
-
 
 age = np.hstack([
     np.ones((ns_total, 1)) * data["th"],
