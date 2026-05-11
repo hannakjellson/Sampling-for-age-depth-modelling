@@ -26,7 +26,7 @@ cutout = 10000
 bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 d18o_energy_values = np.load(f"{output_dir}/d18o_energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
-temp_index = 22
+temp_index = 0
 extra_label = f"_{temp_index}" if temp_index!=0 else ""
 print(1/opes_config["bs"][temp_index])
 weight_exponent = bias_values + (1-opes_config["bs"][temp_index]) * d18o_energy_values
