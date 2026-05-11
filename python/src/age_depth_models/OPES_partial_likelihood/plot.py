@@ -26,7 +26,8 @@ cutout = 10000
 bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
-weight_exponent = bias_values + (1-opes_config["bs"][-1]) * energy_values
+temp_index = -1
+weight_exponent = bias_values + (1-opes_config["bs"][temp_index]) * energy_values
 weights = np.exp(weight_exponent - np.max(weight_exponent))
 
 index = 39
@@ -119,12 +120,12 @@ for i in range(0, Z):
             minlength=num_bins
         )
 
-    # # Jackknife estimate
-    # loo_results = full_hist - block_hists
-    # norm_loo_results  = loo_results / (sum_flat_weights - block_weight_sum[:, None])
-    # jackknife_est = K * norm_full_hist - (K - 1) * np.mean(norm_loo_results, axis=0)
-    # C_jackknife[i, bin_center_indices] = jackknife_est
-    # sigma_est_jackknife[i, bin_center_indices]  = np.sqrt((K-1) * np.sum((norm_loo_results - jackknife_est)**2, axis = 0) / K)
+    # Jackknife estimate
+    loo_results = full_hist - block_hists
+    norm_loo_results  = loo_results / (sum_flat_weights - block_weight_sum[:, None])
+    jackknife_est = K * norm_full_hist - (K - 1) * np.mean(norm_loo_results, axis=0)
+    C_jackknife[i, bin_center_indices] = jackknife_est
+    sigma_est_jackknife[i, bin_center_indices]  = np.sqrt((K-1) * np.sum((norm_loo_results - jackknife_est)**2, axis = 0) / K)
 
     # OPES estimate
     norm_block_results = block_hists/block_weight_sum[:, None]
@@ -135,15 +136,16 @@ for i in range(0, Z):
     print(f"progress: {i/Z:.2f}")
 
 print("Saving")
-# np.save(f"{output_dir}/C_jackknife", C_jackknife)
-# np.save(f"{output_dir}/sigma_est_jackknife", sigma_est_jackknife)
-np.save(f"{output_dir}/C_opes", C_opes)
-np.save(f"{output_dir}/sigma_est_opes", sigma_est_opes)
+extra_label = f"_{temp_index}" if temp_index!=-1 else ""
+np.save(f"{output_dir}/C_jackknife" + extra_label, C_jackknife)
+np.save(f"{output_dir}/sigma_est_jackknife" + extra_label, sigma_est_jackknife)
+np.save(f"{output_dir}/C_opes" + extra_label, C_opes)
+np.save(f"{output_dir}/sigma_est_opes" + extra_label, sigma_est_opes)
 
-C_jackknife = np.load(f"{output_dir}/C_jackknife.npy")
-sigma_est_jackknife = np.load(f"{output_dir}/sigma_est_jackknife.npy")
-# C_opes = np.load(f"{output_dir}/C_opes.npy")
-# sigma_est_opes = np.load(f"{output_dir}/sigma_est_opes.npy")
+# C_jackknife = np.load(f"{output_dir}/C_jackknife" + extra_label + ".npy")
+# sigma_est_jackknife = np.load(f"{output_dir}/sigma_est_jackknife" + extra_label + ".npy")
+# C_opes = np.load(f"{output_dir}/C_opes" + extra_label + ".npy")
+# sigma_est_opes = np.load(f"{output_dir}/sigma_est_opes" + extra_label + ".npy")
 
 print("Plotting")
 ### Plotting Jackknife
@@ -166,8 +168,8 @@ plt.ylim(ylim)
 plt.xlabel(measure)
 plt.ylabel("Year CE")
 plt.tight_layout()
-plt.savefig(f"{output_dir}/age_depth_fig_jackknife.jpg")
-plt.show()
+plt.savefig(f"{output_dir}/age_depth_fig_jackknife" + extra_label + ".jpg")
+# plt.show()
 
 ### Plotting OPES
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -190,8 +192,8 @@ plt.ylim(ylim)
 plt.xlabel(measure)
 plt.ylabel("Year CE")
 plt.tight_layout()
-plt.savefig(f"{output_dir}/age_depth_fig_opes.jpg")
-plt.show()
+plt.savefig(f"{output_dir}/age_depth_fig_opes" + extra_label + ".jpg")
+# plt.show()
 
 # 3. Plotting jackknife along depth
 jackknife_depth_C = C_jackknife[int(interesting_depth/dz), :]
@@ -214,8 +216,8 @@ ax.set_xlabel("Year CE")
 ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} " + measure[-3:-1] + ")")
 plt.legend(loc = "upper right")
-plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_jackknife.jpg")
-plt.show()
+plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_jackknife" + extra_label + ".jpg")
+# plt.show()
 
 # 3. Plotting opes along depth
 ts = np.arange(t_edges[0], t_edges[-1] + dt)
@@ -239,5 +241,5 @@ ax.set_xlabel("Year CE")
 ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} " + measure[-3:-1] + ")")
 plt.legend(loc = "upper right")
-plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_opes.jpg")
-plt.show()
+plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_opes" + extra_label + ".jpg")
+# plt.show()
