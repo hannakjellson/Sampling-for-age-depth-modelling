@@ -82,11 +82,11 @@ def dict_to_struct(d: dict, struct_type):
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "nch": 30,
+        "nch": 20,
         "ns": 100000,
         "sd": 10,
 
-        "dt": 0.0003,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -94,8 +94,8 @@ def get_hmc_config():
 
 def get_opes_config():
     hmc_config = get_hmc_config()
-    ebt = 400
-    nt = 30
+    ebt = 20
+    nt = 20
 
     opes_config = {
         "hmcc": hmc_config,
@@ -113,9 +113,9 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "biw_dec"
     N = 50
-    H = 100
+    H = 1000
 
     base_path = "../../../../data/"
     d18o_timeseries = None
