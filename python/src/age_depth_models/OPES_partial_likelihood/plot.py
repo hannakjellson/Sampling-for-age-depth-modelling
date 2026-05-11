@@ -22,18 +22,18 @@ opes_hash = hash_configs(opes_config, data)
 output_dir = sp_dir / f"{opes_hash}"
 hmc_config = opes_config["hmcc"]
 
-cutout = 20000
+cutout = 10000
 bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
 temp_index = 22
-extra_label = f"_{temp_index}" if temp_index!=-1 else ""
+extra_label = f"_{temp_index}" if temp_index!=0 else ""
 print(1/opes_config["bs"][temp_index])
 weights = np.exp(bias_values + (1-opes_config["bs"][temp_index]) * energy_values)
 print(weights)
 
 index = 39
-K = 100
+K = 10
 t_edges = [1000, 2010]
 
 dt = 1 if not "biw" in data["dn"] else 10
@@ -79,69 +79,69 @@ alpha = (z - x0) / (x1 - x0)
 t_bin_edges = np.arange(t_edges[0], t_edges[-1] + dt, dt, dtype = int)
 t = t_bin_edges[1:] - dt / 2
 
-# C_jackknife = np.full((Z, np.shape(t)[0]), np.nan)
-# # C_opes = np.full((Z, np.shape(t)[0]), np.nan)
-# sigma_est_jackknife = np.full((Z, np.shape(t)[0]), np.nan)
-# # sigma_est_opes = np.full((Z, np.shape(t)[0]), np.nan)
+C_jackknife = np.full((Z, np.shape(t)[0]), np.nan)
+# C_opes = np.full((Z, np.shape(t)[0]), np.nan)
+sigma_est_jackknife = np.full((Z, np.shape(t)[0]), np.nan)
+# sigma_est_opes = np.full((Z, np.shape(t)[0]), np.nan)
 
-# for i in range(0, Z):
-#     # ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns_total)])
-#     j = interp_idx[i]
-#     ages = (
-#         (1 - alpha[i]) * age[:, j]
-#         + alpha[i] * age[:, j + 1]
-#     )
-#     start = (np.min(ages) // dt) * dt
-#     stop = (np.max(ages) // dt + 1) * dt + dt
-#     bins = np.arange(start, stop, dt, dtype = int)
-#     if bins.size < 2:
-#         bins = np.array([start, start + dt], dtype = int)
+for i in range(0, Z):
+    # ages = np.array([np.interp(z[i], data["cs"], age[j, :]) for j in range(ns_total)])
+    j = interp_idx[i]
+    ages = (
+        (1 - alpha[i]) * age[:, j]
+        + alpha[i] * age[:, j + 1]
+    )
+    start = (np.min(ages) // dt) * dt
+    stop = (np.max(ages) // dt + 1) * dt + dt
+    bins = np.arange(start, stop, dt, dtype = int)
+    if bins.size < 2:
+        bins = np.array([start, start + dt], dtype = int)
     
-#     bin_center_indices = ((bins[:-1] - t_edges[0])/dt).astype(int)
-#     bin_age_indices = np.digitize(ages, bins) - 1
-#     num_bins = len(bins) - 1
+    bin_center_indices = ((bins[:-1] - t_edges[0])/dt).astype(int)
+    bin_age_indices = np.digitize(ages, bins) - 1
+    num_bins = len(bins) - 1
 
     
-#     # Computing full histogram
-#     full_hist = np.full((num_bins), np.nan)
-#     for b in range(num_bins):
-#         full_hist[b] = np.sum(flat_weights[bin_age_indices == b])
-#     norm_full_hist = full_hist / sum_flat_weights
+    # Computing full histogram
+    full_hist = np.full((num_bins), np.nan)
+    for b in range(num_bins):
+        full_hist[b] = np.sum(flat_weights[bin_age_indices == b])
+    norm_full_hist = full_hist / sum_flat_weights
 
-#     # Computing block histograms
-#     block_hists = np.zeros((K, num_bins))
-#     for k in range(K):
-#         start, end = k * block_size, (k + 1) * block_size
-#         b_idx = bin_age_indices[start:end]
-#         b_w = flat_weights[start:end]
+    # Computing block histograms
+    block_hists = np.zeros((K, num_bins))
+    for k in range(K):
+        start, end = k * block_size, (k + 1) * block_size
+        b_idx = bin_age_indices[start:end]
+        b_w = flat_weights[start:end]
         
-#         # Sum weights in this block
-#         block_hists[k] = np.bincount(
-#             b_idx,
-#             weights=b_w,
-#             minlength=num_bins
-#         )
+        # Sum weights in this block
+        block_hists[k] = np.bincount(
+            b_idx,
+            weights=b_w,
+            minlength=num_bins
+        )
 
-#     # Jackknife estimate
-#     loo_results = full_hist - block_hists
-#     norm_loo_results  = loo_results / (sum_flat_weights - block_weight_sum[:, None])
-#     jackknife_est = K * norm_full_hist - (K - 1) * np.mean(norm_loo_results, axis=0)
-#     C_jackknife[i, bin_center_indices] = jackknife_est
-#     sigma_est_jackknife[i, bin_center_indices]  = np.sqrt((K-1) * np.sum((norm_loo_results - jackknife_est)**2, axis = 0) / K)
+    # Jackknife estimate
+    loo_results = full_hist - block_hists
+    norm_loo_results  = loo_results / (sum_flat_weights - block_weight_sum[:, None])
+    jackknife_est = K * norm_full_hist - (K - 1) * np.mean(norm_loo_results, axis=0)
+    C_jackknife[i, bin_center_indices] = jackknife_est
+    sigma_est_jackknife[i, bin_center_indices]  = np.sqrt((K-1) * np.sum((norm_loo_results - jackknife_est)**2, axis = 0) / K)
 
-#     # # OPES estimate
-#     # norm_block_results = block_hists/block_weight_sum[:, None]
-#     # opes_est = block_weight_sum@norm_block_results/sum_flat_weights
-#     # meff = np.sum(block_weight_sum)**2 / np.sum(block_weight_sum_squared)
-#     # C_opes[i, bin_center_indices] = opes_est
-#     # sigma_est_opes[i, bin_center_indices] = np.sqrt((block_weight_sum @ (norm_block_results - norm_full_hist)**2 / ((meff - 1) * sum_flat_weights)))
-#     print(f"progress: {i/Z:.2f}")
+    # # OPES estimate
+    # norm_block_results = block_hists/block_weight_sum[:, None]
+    # opes_est = block_weight_sum@norm_block_results/sum_flat_weights
+    # meff = np.sum(block_weight_sum)**2 / np.sum(block_weight_sum_squared)
+    # C_opes[i, bin_center_indices] = opes_est
+    # sigma_est_opes[i, bin_center_indices] = np.sqrt((block_weight_sum @ (norm_block_results - norm_full_hist)**2 / ((meff - 1) * sum_flat_weights)))
+    print(f"progress: {i/Z:.2f}")
 
-# print("Saving")
-# np.save(f"{output_dir}/C_jackknife" + extra_label, C_jackknife)
-# np.save(f"{output_dir}/sigma_est_jackknife" + extra_label, sigma_est_jackknife)
-# # np.save(f"{output_dir}/C_opes" + extra_label, C_opes)
-# # np.save(f"{output_dir}/sigma_est_opes" + extra_label, sigma_est_opes)
+print("Saving")
+np.save(f"{output_dir}/C_jackknife" + extra_label, C_jackknife)
+np.save(f"{output_dir}/sigma_est_jackknife" + extra_label, sigma_est_jackknife)
+# np.save(f"{output_dir}/C_opes" + extra_label, C_opes)
+# np.save(f"{output_dir}/sigma_est_opes" + extra_label, sigma_est_opes)
 
 C_jackknife = np.load(f"{output_dir}/C_jackknife" + extra_label + ".npy")
 sigma_est_jackknife = np.load(f"{output_dir}/sigma_est_jackknife" + extra_label + ".npy")
