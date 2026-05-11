@@ -26,9 +26,9 @@ cutout = 10000
 bias_values = np.load(f"{output_dir}/bias.npy", mmap_mode='r')[:, cutout:]
 energy_values = np.load(f"{output_dir}/energy.npy", mmap_mode='r')[:, cutout:]
 samples = np.load(output_dir / "samples.npy", mmap_mode='r')[:, cutout:, :]
-temp_index = -1
-weight_exponent = bias_values + (1-opes_config["bs"][temp_index]) * energy_values
-weights = np.exp(weight_exponent - np.max(weight_exponent))
+temp_index = 7
+weights = np.exp(bias_values + (1-opes_config["bs"][temp_index]) * energy_values)
+print(weights)
 
 index = 39
 K = 100
@@ -169,7 +169,7 @@ plt.xlabel(measure)
 plt.ylabel("Year CE")
 plt.tight_layout()
 plt.savefig(f"{output_dir}/age_depth_fig_jackknife" + extra_label + ".jpg")
-# plt.show()
+plt.show()
 
 ### Plotting OPES
 fig, ax = plt.subplots(figsize=(6, 4))
@@ -193,7 +193,7 @@ plt.xlabel(measure)
 plt.ylabel("Year CE")
 plt.tight_layout()
 plt.savefig(f"{output_dir}/age_depth_fig_opes" + extra_label + ".jpg")
-# plt.show()
+plt.show()
 
 # 3. Plotting jackknife along depth
 jackknife_depth_C = C_jackknife[int(interesting_depth/dz), :]
@@ -217,7 +217,7 @@ ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} " + measure[-3:-1] + ")")
 plt.legend(loc = "upper right")
 plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_jackknife" + extra_label + ".jpg")
-# plt.show()
+plt.show()
 
 # 3. Plotting opes along depth
 ts = np.arange(t_edges[0], t_edges[-1] + dt)
@@ -242,4 +242,4 @@ ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} " + measure[-3:-1] + ")")
 plt.legend(loc = "upper right")
 plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}_opes" + extra_label + ".jpg")
-# plt.show()
+plt.show()
