@@ -11,7 +11,7 @@ true_sample = np.load(base_path / data["dn"] / version / "true_sample.npy")
 highT = "_highT" if "wah" in data["dn"] else ""
 int_version = int(version)
 true_ages = np.hstack((data["th"], data["th"] - np.cumsum(true_sample) * data["dc"]))
-c14_label = r"$^{230}$Th" if "d18o" in data["dn"] else r"Tephra Layer"
+c14_label = r"$^{230}$Th" if "d18o" in data["dn"] else r"Tephra layer"
 measure = "Distance from top of stalagmite [mm]" if "d18o" in data["dn"] else "Depth of sediment [cm]"
 
 sp_dir = base_dir / f"output/{data['dn']}/{version}"
@@ -118,7 +118,7 @@ plt.ylim(ylim)
 plt.xlabel(measure)
 plt.ylabel("Year CE")
 plt.tight_layout()
-plt.savefig(f"{output_dir}/age_depth_fig"  + highT + ".jpg")
+plt.savefig(f"{output_dir}/age_depth_fig"  + highT + ".jpg", dpi=300, bbox_inches="tight")
 plt.show()
 
 # 3. Plotting estimate along depth
@@ -143,5 +143,5 @@ ax.set_ylabel("Marginal Density")
 ax.axvline(x=true_ages[index], color="red", linestyle='--', linewidth = 1, label = data_name + f"({int(interesting_depth)} " + measure[-3:-1] + ")")
 plt.legend(loc = "upper right")
 plt.tight_layout()
-plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}" + highT + ".jpg")
+plt.savefig(f"{output_dir}/samples_along_depth_{interesting_depth}" + highT + ".jpg", dpi=300, bbox_inches="tight")
 plt.show()
