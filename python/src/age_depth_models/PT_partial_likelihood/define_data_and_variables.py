@@ -78,7 +78,7 @@ def get_hmc_config():
         "ns": 100000,
         "sd": 10,
 
-        "dt": 0.0003,
+        "dt": 0.001,
 
         "sp": None,
     }
@@ -86,8 +86,8 @@ def get_hmc_config():
 
 def get_pt_config():
     hmc_config = get_hmc_config()
-    ebt = 400
-    nt = 30
+    ebt = 20
+    nt = 20
 
     pt_config = {
         "hmcc": hmc_config,
@@ -100,9 +100,9 @@ def get_pt_config():
     return pt_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "biw_dec"
     N = 50
-    H = 100
+    H = 1000
 
     base_path = "../../../../data/"
     d18o_timeseries = None
@@ -150,8 +150,8 @@ def get_data():
 
         "H": H,
         "dc": H / N,
-        "pm": 1.71472 if not "dec_edit" in name else 1.9453,
-        "ps": 0.7107 if not "dec_edit" in name else 0.636761,
+        "pm": 1.71472,
+        "ps": 0.7107,
         "th": true_ages[0],
 
         "cs": np.ascontiguousarray(np.linspace(0, H, N + 1), dtype = np.float64),

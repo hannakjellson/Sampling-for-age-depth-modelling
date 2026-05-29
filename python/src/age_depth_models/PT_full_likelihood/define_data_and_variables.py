@@ -75,7 +75,7 @@ def dict_to_struct(d: dict, struct_type):
 def get_hmc_config():
     hmc_config = {
         "ndt": 700,
-        "ns": 10000,
+        "ns": 100000,
         "sd": 10,
 
         "dt": 0.001,
@@ -86,8 +86,8 @@ def get_hmc_config():
 
 def get_pt_config():
     hmc_config = get_hmc_config()
-    ebt = 5
-    nt = 5
+    ebt = 20
+    nt = 20
 
     pt_config = {
         "hmcc": hmc_config,
@@ -150,8 +150,8 @@ def get_data():
 
         "H": H,
         "dc": H / N,
-        "pm": 1.71472 if not "dec_edit" in name else 1.9453,
-        "ps": 0.7107 if not "dec_edit" in name else 0.636761,
+        "pm": 1.71472,
+        "ps": 0.7107,
         "th": true_ages[0],
 
         "cs": np.ascontiguousarray(np.linspace(0, H, N + 1), dtype = np.float64),

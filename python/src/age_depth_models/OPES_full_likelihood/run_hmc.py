@@ -1,8 +1,6 @@
 import ctypes
 import numpy as np
-import scipy as sc
 import os
-from datetime import datetime
 import json
 
 from define_data_and_variables import OPESConfig, Data, opes_config, opes_hash, c_opes_config, data, c_data, make_dumpable, version

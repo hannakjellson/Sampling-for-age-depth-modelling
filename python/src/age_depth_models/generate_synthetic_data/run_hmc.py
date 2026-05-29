@@ -68,7 +68,6 @@ def main():
     print("------Generating 3 sets of reference data and plotting------")
     # Labels
     c14_label = r"$^{230}$Th" if "d18o" in data["dn"] else r"Tephra Layer"
-    d18o_label = "$\\delta^{18}$O [‰]" if "d18o" in data["dn"] else "inc [°]" if "inc" in data["dn"] else "dec [°]"
 
     # Computing histograms of all samples for plotting
     chain = 4

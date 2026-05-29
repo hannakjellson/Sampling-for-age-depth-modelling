@@ -113,9 +113,9 @@ def get_opes_config():
     return opes_config
 
 def get_data():
-    name = "dayu_d18o_edit"
+    name = "biw_dec"
     N = 50
-    H = 100
+    H = 1000
 
     base_path = "../../../../data/"
     d18o_timeseries = None
@@ -153,7 +153,7 @@ def get_data():
     d18o_depths = depths[d18o_mask][
         ::-1
     ]
-    true_ages_d18O = true_ages[d18o_mask][::-1]
+    true_ages_d18O = true_ages[d18o_mask][::-1] # Stupid flip
 
     data = {
         "N": N,

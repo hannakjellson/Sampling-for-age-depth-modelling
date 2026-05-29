@@ -64,7 +64,7 @@ def get_hmc_config():
         "ndt": 700,
         "nch": 5,
         "ns": 50000,
-        "sd": 15,
+        "sd": 1,
 
         "dt": 0.005,
 
@@ -73,9 +73,9 @@ def get_hmc_config():
     return hmc_config
 
 def get_data():
-    name = "wah_d18o"
+    name = "biw_dec"
     N = 50
-    H = 100
+    H = 1000
 
     base_path = "../../../../data/"
     d18o_timeseries = None
@@ -113,8 +113,8 @@ def get_data():
     d18o_sigma = d18o_sigma[d18o_mask][::-1]
     d18o_depths = depths[d18o_mask][
         ::-1
-    ]  # This does not overlap with the c14 depths in the file.
-    true_ages_d18O = true_ages[d18o_mask][::-1]
+    ]
+    true_ages_d18O = true_ages[d18o_mask][::-1] # Stupid flip
 
     data = {
         "N": N,
@@ -124,8 +124,8 @@ def get_data():
 
         "H": H,
         "dc": H / N,
-        "pm": 1.71472 if not "dec_edit" in name else 1.9453,
-        "ps": 0.7107 if not "dec_edit" in name else 0.636761,
+        "pm": 1.71472,
+        "ps": 0.7107,
         "th": true_ages[0],
 
         "cs": np.ascontiguousarray(np.linspace(0, H, N + 1), dtype = np.float64),
@@ -144,7 +144,7 @@ def get_data():
         "d18ort": np.ascontiguousarray(d18o_reference_times, dtype = np.float64),
         "d18ota": np.ascontiguousarray(true_ages_d18O, dtype = np.float64),
 
-        "dn": name, # .encode("utf-8")?
+        "dn": name,
     }
     return data
 
